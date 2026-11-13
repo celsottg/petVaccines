@@ -46,6 +46,16 @@ O app usa bibliotecas nativas que não existem no Expo Go, por isso roda em um [
 | `npm run typecheck` | checagem de tipos (TypeScript) |
 | `npx expo start` | servidor de desenvolvimento |
 
+## Arquivo de backup
+
+O backup é um arquivo `petvaccines-backup-AAAA-MM-DD.zip` gerado no próprio aparelho (nada passa por servidor). Dentro dele:
+
+- `data.json`: texto JSON comum, que você pode abrir em qualquer editor. Traz `format` (`petvaccines-backup`), `schemaVersion`, `appVersion`, `exportedAt` e as listas `pets`, `vaccinations`, `attachments` e `settings`. Os campos das listas têm os mesmos nomes das colunas do banco (`pet_id`, `applied_on`, `next_due_on`...). Pets com baixa também entram.
+- `photos/<id>.jpg`: fotos dos comprovantes.
+- `pets/<id>.jpg`: fotos de perfil dos pets.
+
+O formato é definido por um único esquema Zod, em `src/services/backup/schema.ts`. Regra de versão: `schemaVersion` só sobe quando o formato muda, e uma versão nova do app precisa continuar lendo os backups de versões anteriores, convertendo-os na leitura.
+
 ## Como contribuir
 
 Contribuições são muito bem-vindas, inclusive sem programar: sugerir vacinas para o catálogo, revisar textos e traduzir. Leia o [guia de contribuição](CONTRIBUTING.md) e o [código de conduta](CODE_OF_CONDUCT.md).

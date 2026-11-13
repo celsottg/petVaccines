@@ -46,3 +46,10 @@ export function validateSettingsInput(input: SettingsInput): SettingsResult {
   if (failed || dueSoonDays === undefined) return { ok: false, errors };
   return { ok: true, value: { dueSoonDays, reminderOffsetsDays: parsed.sort((a, b) => b - a) } };
 }
+
+export const BACKUP_WARNING_RANGE = { min: 1, max: 365 } as const;
+
+/** The backup warning period typed by the tutor: a whole number of days within the range, or undefined. */
+export function parseBackupWarningDays(text: string): number | undefined {
+  return parseWhole(text, BACKUP_WARNING_RANGE);
+}
