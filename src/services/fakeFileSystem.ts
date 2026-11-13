@@ -52,7 +52,10 @@ class FakeFile {
   copy(destination: FakeFile) {
     const entry = files.get(this.uri);
     if (!entry) return Promise.reject(new Error(`File does not exist: ${this.uri}`));
-    if (entry.failCopy) return Promise.reject(new Error(`Cannot copy: ${this.uri}`));
+    if (entry.failCopy) {
+      files.set(destination.uri, { size: 1, text: 'partial' }); // a real copy can fail part-way
+      return Promise.reject(new Error(`Cannot copy: ${this.uri}`));
+    }
     files.set(destination.uri, { ...entry, failCopy: false });
     return Promise.resolve();
   }

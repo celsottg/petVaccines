@@ -167,6 +167,50 @@ describe('exportBackup', () => {
     expect((await exportBackup()).missingPhotos).toBe(1);
   });
 
+  it('removes the partial file of a copy that failed part-way, so it is not zipped', async () => {
+    populate();
+    fakeFs.addFile(`file:///docs/photos/${PHOTO}.jpg`, 10, { failCopy: true });
+
+    await exportBackup();
+
+    expect(zipped.tree).toEqual(['data.json', `pets/${PET_PHOTO}.jpg`, `photos/${PHOTO2}.jpg`]);
+  });
+
+  it('reports a pet photo missing on disk', async () => {
+    populate();
+    fakeFs.reset();
+    fakeFs.addDir('file:///cache');
+    fakeFs.addFile(`file:///docs/photos/${PHOTO}.jpg`);
+    fakeFs.addFile(`file:///docs/photos/${PHOTO2}.jpg`);
+
+    const result = await exportBackup();
+
+    expect(result).toEqual({ missingPhotos: 1 });
+    expect(zipped.tree).toEqual(['data.json', `photos/${PHOTO}.jpg`, `photos/${PHOTO2}.jpg`]);
+  });
+
+  it('clears a staging folder left by an interrupted run', async () => {
+    populate();
+    fakeFs.addDir(STAGING);
+    fakeFs.addFile(`${STAGING}/photos/leftover.jpg`);
+
+    await exportBackup();
+
+    expect(zipped.tree).toEqual(['data.json', `pets/${PET_PHOTO}.jpg`, `photos/${PHOTO}.jpg`, `photos/${PHOTO2}.jpg`]);
+  });
+
+  it('still succeeds, keeping the shared zip, when last_backup_at cannot be stored', async () => {
+    populate();
+    jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
+      throw new Error('disk full');
+    });
+
+    await expect(exportBackup()).resolves.toEqual({ missingPhotos: 0 });
+
+    expect(fakeFs.has(TARGET)).toBe(true);
+    expect(getSettings(db).lastBackupAt).toBeNull();
+  });
+
   it('exports an empty database', async () => {
     const result = await exportBackup();
 

@@ -52,6 +52,8 @@ async function copyPhoto(sourceUri: string, destination: File): Promise<boolean>
     await source.copy(destination);
     return true;
   } catch {
+    // A copy can fail part-way; a partial photo must not end up in the zip.
+    removeQuietly(destination);
     return false;
   }
 }
@@ -107,7 +109,12 @@ export async function exportBackup(): Promise<BackupResult> {
   } finally {
     removeQuietly(staging);
   }
-  // Outside the try: the zip is already shared, so a failure here must not delete it.
-  db.transaction((tx) => setSetting(tx, 'last_backup_at', now.toISOString()));
+  // Outside the try: the zip is already shared, so a failure here neither deletes it nor fails the export.
+  // The warning banner then simply stays until the next backup.
+  try {
+    db.transaction((tx) => setSetting(tx, 'last_backup_at', now.toISOString()));
+  } catch {
+    // Nothing else to do: the tutor already has the file.
+  }
   return { missingPhotos: missing };
 }
