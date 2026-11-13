@@ -6,5 +6,11 @@
       "description": "Cadastre seu cão ou gato para guardar a carteira de vacinação dele."
     },
     "add": "Adicionar pet"
+  },
+  "database": {
+    "error": {
+      "title": "Não foi possível abrir o banco de dados",
+      "description": "Houve um erro ao preparar os dados do aplicativo. Feche e abra o app novamente. Se o problema continuar, abra uma issue no repositório com a mensagem abaixo."
+    }
   }
 }
