@@ -1,9 +1,10 @@
-import { fireEvent } from '@testing-library/react-native';
+import { act, fireEvent } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { View } from 'react-native';
 
 import HomeScreen from '@/app/index';
+import WalletScreen from '@/app/pets/[petId]/index';
 import NewPetScreen from '@/app/pets/new';
 import { db } from '@/db/client';
 import { pets, settings } from '@/db/schema';
@@ -12,7 +13,7 @@ import { formatBrDate } from '@/domain/dateInput';
 
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
 
-const routes = { index: HomeScreen, 'pets/new': NewPetScreen, archived: () => <View /> };
+const routes = { index: HomeScreen, 'pets/new': NewPetScreen, 'pets/[petId]/index': WalletScreen, archived: () => <View /> };
 const renderForm = () => renderRouter(routes, { initialUrl: '/pets/new' });
 const allPets = () => db.select().from(pets).all();
 
@@ -24,7 +25,7 @@ describe('Novo pet screen', () => {
     db.delete(settings).run();
   });
 
-  it('saves a pet with only a name and the default species, then returns to Meus pets', async () => {
+  it('saves a pet with only a name and the default species, then opens its wallet', async () => {
     await renderForm();
 
     await fireEvent.changeText(screen.getByLabelText('Nome'), '  Thor ');
@@ -41,8 +42,19 @@ describe('Novo pet screen', () => {
         status: 'active',
       }),
     ]);
+    expect(screen).toHavePathname(`/pets/${allPets()[0].id}`);
+    expect(screen.getByText('Nenhuma vacina registrada')).toBeOnTheScreen();
+  });
+
+  it('keeps Meus pets as the screen behind the new wallet', async () => {
+    await renderRouter(routes);
+    await fireEvent.press(screen.getByRole('button', { name: 'Adicionar pet' }));
+    await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+    await act(() => router.back());
+
     expect(screen).toHavePathname('/');
-    expect(screen.getByText('Thor')).toBeOnTheScreen();
   });
 
   it('saves every field', async () => {
@@ -125,7 +137,7 @@ describe('Novo pet screen', () => {
   it('creates one pet when "Salvar" is pressed twice before navigation finishes', async () => {
     await renderForm();
     // Spy after rendering: the router installs its imperative API on render.
-    jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+    jest.spyOn(router, 'replace').mockImplementation(() => {});
 
     await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
@@ -136,7 +148,7 @@ describe('Novo pet screen', () => {
 
   it('shows a message and does not navigate when the write fails, then saves on retry', async () => {
     await renderForm();
-    const dismissTo = jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+    const replace = jest.spyOn(router, 'replace').mockImplementation(() => {});
     await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
     const failing = jest.spyOn(db, 'transaction').mockImplementation(() => {
       throw new Error('disk full');
@@ -145,18 +157,18 @@ describe('Novo pet screen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
 
     expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
-    expect(dismissTo).not.toHaveBeenCalled();
+    expect(replace).not.toHaveBeenCalled();
     expect(allPets()).toEqual([]);
 
     failing.mockRestore();
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
     expect(allPets()).toHaveLength(1);
-    expect(dismissTo).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledTimes(1);
   });
 
   it('does not report a save failure or allow a duplicate when navigation throws after the write', async () => {
     await renderForm();
-    jest.spyOn(router, 'dismissTo').mockImplementation(() => {
+    jest.spyOn(router, 'replace').mockImplementation(() => {
       throw new Error('navigation failed');
     });
     await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');

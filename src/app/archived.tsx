@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { FlatList, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -34,8 +34,11 @@ export default function ArchivedScreen() {
           ) : undefined
         }
         renderItem={({ item: { pet } }) => (
-          // Opening the wallet in read-only mode arrives with Task 6.
-          <PetCard name={pet.name} details={petDetails(pet, today)} note={archivedLine(pet.archivedReason, pet.archivedOn)}>
+          <PetCard
+            name={pet.name}
+            details={petDetails(pet, today)}
+            note={archivedLine(pet.archivedReason, pet.archivedOn)}
+            onPress={() => router.push({ pathname: '/pets/[petId]', params: { petId: pet.id } })}>
             <Button
               variant="secondary"
               label={t('pets.archived.reactivate')}

@@ -2,6 +2,7 @@ import { fireEvent } from '@testing-library/react-native';
 import { renderRouter, screen } from 'expo-router/testing-library';
 
 import ArchivedScreen from '@/app/archived';
+import WalletScreen from '@/app/pets/[petId]/index';
 import { archivePet } from '@/data/pets';
 import { newPet, newVaccination } from '@/data/testHelpers';
 import { db } from '@/db/client';
@@ -9,7 +10,8 @@ import { pets, settings } from '@/db/schema';
 
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
 
-const renderArchived = () => renderRouter({ archived: ArchivedScreen }, { initialUrl: '/archived' });
+const renderArchived = () =>
+  renderRouter({ archived: ArchivedScreen, 'pets/[petId]/index': WalletScreen, index: () => null }, { initialUrl: '/archived' });
 const allPets = () => db.select().from(pets).all();
 
 describe('Carteiras encerradas screen', () => {
@@ -54,5 +56,18 @@ describe('Carteiras encerradas screen', () => {
     expect(allPets()[0]).toMatchObject({ status: 'active', archivedReason: null, archivedOn: null });
     expect(screen.queryByText('Bolinha')).toBeNull();
     expect(screen.getByText('Nenhuma carteira encerrada.')).toBeOnTheScreen();
+  });
+
+  it('opens the wallet of a pet in read-only mode', async () => {
+    const pet = newPet(db, { name: 'Bolinha' });
+    newVaccination(db, pet.id);
+    archivePet(db, pet.id, 'deceased', null);
+    await renderArchived();
+
+    await fireEvent.press(screen.getByRole('button', { name: /^Bolinha/ }));
+
+    expect(screen).toHavePathname(`/pets/${pet.id}`);
+    expect(screen.getByRole('button', { name: /^Antirrábica/ })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Nova vacina' })).toBeNull();
   });
 });

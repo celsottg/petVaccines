@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import HomeScreen from '@/app/index';
 import EditPetScreen from '@/app/pets/[petId]/edit';
+import WalletScreen from '@/app/pets/[petId]/index';
 import { createPet } from '@/data/pets';
 import { newPet } from '@/data/testHelpers';
 import { createVaccination } from '@/data/vaccinations';
@@ -15,6 +16,7 @@ jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').crea
 
 const routes = {
   index: HomeScreen,
+  'pets/[petId]/index': WalletScreen,
   'pets/[petId]/edit': EditPetScreen,
   'pets/[petId]/archive': () => <View testID="archive" />,
   archived: () => <View />,
@@ -40,7 +42,7 @@ describe('Editar pet screen', () => {
     expect(screen.getByLabelText('Data de nascimento (opcional)').props.value).toBe('10/08/2023');
   });
 
-  it('saves the changes and returns to Meus pets', async () => {
+  it('saves the changes and returns to the wallet of the pet', async () => {
     const pet = newPet(db, { name: 'Rex', breed: 'Poodle' });
     await renderEdit(pet.id);
 
@@ -49,7 +51,8 @@ describe('Editar pet screen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
 
     expect(allPets()).toEqual([expect.objectContaining({ id: pet.id, name: 'Max', breed: null })]);
-    expect(screen).toHavePathname('/');
+    expect(screen).toHavePathname(`/pets/${pet.id}`);
+    expect(screen.getAllByText('Max').length).toBeGreaterThan(0);
   });
 
   it('keeps the existing photo reference, since updatePet replaces every field', async () => {
@@ -126,5 +129,13 @@ describe('Editar pet screen', () => {
     failing.mockRestore();
     dismissTo.mockRestore();
     expect(allPets()).toHaveLength(1);
+  });
+
+  it('shows a way back to Meus pets when the pet does not exist', async () => {
+    await renderEdit('missing-pet');
+
+    expect(screen.getByText('Não encontramos este item')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar para Meus pets' }));
+    expect(screen).toHavePathname('/');
   });
 });

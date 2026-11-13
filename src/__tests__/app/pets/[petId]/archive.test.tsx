@@ -117,4 +117,12 @@ describe('Dar baixa screen', () => {
 
     expect(onlyPet().status).toBe('active');
   });
+
+  it('shows a way back to Meus pets when the pet does not exist', async () => {
+    await renderArchive('missing-pet');
+
+    expect(screen.getByText('Não encontramos este item')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar para Meus pets' }));
+    expect(screen).toHavePathname('/');
+  });
 });

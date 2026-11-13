@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { ChoiceChips } from '@/components/ChoiceChips';
 import { FormError } from '@/components/FormError';
 import { FormField } from '@/components/FormField';
+import { NotFound } from '@/components/NotFound';
 import { PetCard } from '@/components/PetCard';
 import { useGuardedAction } from '@/components/useGuardedAction';
 import { dateErrorLabel, petDetails } from '@/components/petLabels';
@@ -25,7 +26,7 @@ const EFFECTS = ['reminders', 'badges', 'list', 'history', 'backup'] as const;
 
 export default function ArchivePetScreen() {
   const { petId } = useLocalSearchParams<{ petId: string }>();
-  const { pet } = usePet(petId);
+  const { pet, loaded } = usePet(petId);
   const { colors, spacing, radius, typography } = useTheme();
   const [reason, setReason] = useState<ArchiveReason | null>(null);
   const [date, setDate] = useState('');
@@ -33,7 +34,7 @@ export default function ArchivePetScreen() {
   const [reasonError, setReasonError] = useState<string>();
   const guard = useGuardedAction();
 
-  if (!pet) return null;
+  if (!pet) return loaded ? <NotFound /> : null;
 
   function confirm() {
     if (!pet) return;
