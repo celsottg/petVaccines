@@ -25,6 +25,10 @@ describe('vaccineKey with catalog matching', () => {
     expect(vaccineKey({ catalogId: null, vaccineName: 'Leptospirose' }, match)).toBe('name:leptospirose');
   });
 
+  it('ignores the matcher when the record already has a catalog id', () => {
+    expect(vaccineKey({ catalogId: 'br-cat-rabies', vaccineName: 'Antirrábica' }, match)).toBe('catalog:br-cat-rabies');
+  });
+
   it('collapses inner spaces', () => {
     expect(vaccineKey({ catalogId: null, vaccineName: 'Gripe  Canina' })).toBe(
       vaccineKey({ catalogId: null, vaccineName: 'gripe canina' }),

@@ -1,5 +1,5 @@
 // Task 2 rules working together, in the Review Focus scenarios.
-import { splitCurrent } from './current';
+import { splitCurrent, type CatalogMatcher } from './current';
 import { todayLocal } from './dates';
 import { suggestNextDue } from './nextDose';
 import { getStatus, worstStatus } from './status';
@@ -54,5 +54,32 @@ describe('Flow: register, add a booster and compute the pet badge', () => {
     const next = suggestNextDue(today, 365);
     expect(next).toBe('2027-11-12');
     expect(getStatus(next, today, 30)).toBe('ok');
+  });
+});
+
+describe('Flow: a free-name record is matched to the catalog item', () => {
+  const today = '2026-12-02';
+  const match: CatalogMatcher = (n) => (n === 'antirrabica' ? 'br-dog-rabies' : undefined);
+  const mk = (id: string, catalogId: string | null, name: string, appliedOn: string) => ({
+    id,
+    catalogId,
+    vaccineName: name,
+    appliedOn,
+    createdAt: `${appliedOn}T12:00:00.000Z`,
+    nextDueOn: suggestNextDue(appliedOn, 365),
+  });
+
+  it('the catalog booster replaces the free-name record, so the old one no longer drives the badge', () => {
+    const list = [
+      mk('free-2025', null, 'Antirrábica', '2025-12-02'), // next: 2026-12-02, due today
+      mk('catalog-2026', 'br-dog-rabies', 'Raiva', '2026-12-01'), // next: 2027-12-01
+    ];
+    const { current, previous } = splitCurrent(list, match);
+    expect(current.map((r) => r.id)).toEqual(['catalog-2026']);
+    expect(previous.map((r) => r.id)).toEqual(['free-2025']);
+    expect(worstStatus(current.map((r) => getStatus(r.nextDueOn, today, 30)))).toBe('ok');
+    // without the matcher the old free-name record would still be current and due soon
+    const unmatched = splitCurrent(list).current;
+    expect(worstStatus(unmatched.map((r) => getStatus(r.nextDueOn, today, 30)))).toBe('due_soon');
   });
 });
