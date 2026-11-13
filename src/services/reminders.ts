@@ -6,8 +6,7 @@ import { catalogMatcher } from '@/catalog';
 import { getSettings } from '@/data/settings';
 import { db } from '@/db/client';
 import { pets, vaccinations } from '@/db/schema';
-import { addDays, todayLocal, type IsoDate } from '@/domain/dates';
-import { planReminders, type PlannedReminder } from '@/domain/reminders';
+import { earliestReminderDay, planReminders, reminderFireDate, type PlannedReminder } from '@/domain/reminders';
 import { t } from '@/i18n';
 
 import { createSerialRunner } from './serialRunner';
@@ -15,15 +14,10 @@ import { createSerialRunner } from './serialRunner';
 const CHANNEL_ID = 'reminders';
 /** iOS keeps at most 64 scheduled local notifications; stay well under it. */
 const MAX_SCHEDULED = 50;
-const FIRE_HOUR = 9;
 
 export type NotificationPermission = 'granted' | 'denied' | 'undetermined';
 
-/** The instant a reminder fires: 09:00 local time on the calendar date (never parsed as UTC). */
-export function reminderFireDate(fireOn: IsoDate): Date {
-  const [year, month, day] = fireOn.split('-').map(Number);
-  return new Date(year, month - 1, day, FIRE_HOUR, 0, 0, 0);
-}
+export { reminderFireDate };
 
 function isGranted(answer: Notifications.NotificationPermissionsStatus): boolean {
   return answer.granted || answer.ios?.status === IosAuthorizationStatus.PROVISIONAL;
@@ -95,17 +89,12 @@ export async function syncReminders(): Promise<void> {
     await Notifications.cancelAllScheduledNotificationsAsync();
     if ((await getNotificationPermission()) !== 'granted') return;
 
-    // Today's 09:00 may already be behind us; then the first possible day is tomorrow.
-    // Deciding this before planning keeps the 50-item window full of reminders that can still fire.
-    const now = new Date();
-    const today = todayLocal(now);
-    const earliest = now.getTime() < reminderFireDate(today).getTime() ? today : addDays(today, 1);
-
+    // Past today's 09:00 the first possible day is tomorrow; deciding it before planning keeps the 50-item window full.
     const planned = planReminders({
       pets: db.select().from(pets).all(),
       vaccinations: db.select().from(vaccinations).all(),
       offsetsDays: getSettings(db).reminderOffsetsDays,
-      today: earliest,
+      today: earliestReminderDay(),
       limit: MAX_SCHEDULED,
       matcherFor: catalogMatcher,
     });

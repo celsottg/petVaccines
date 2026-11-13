@@ -207,40 +207,63 @@ describe('syncReminders', () => {
     });
   });
 
-  it('serializes overlapping requests so cancel and schedule steps never interleave, and the last state wins', async () => {
+  it('serializes overlapping requests, and a change made after the first run read the data is not lost', async () => {
     const pet = addPet();
     createVaccination(db, { petId: pet.id, vaccineName: 'Antirrábica', appliedOn: '2025-12-02', nextDueOn: '2026-12-02' });
     const events: string[] = [];
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
+    let held = false;
     n.cancelAllScheduledNotificationsAsync.mockImplementation(async () => {
       events.push('cancel');
-      if (events.filter((e) => e === 'cancel').length === 1) await gate;
     });
     n.scheduleNotificationAsync.mockImplementation(async (request) => {
-      events.push(`schedule ${request.content.body}`);
+      const date = (request.trigger as { date: Date }).date.toISOString().slice(0, 10);
+      events.push(`schedule ${date}`);
+      // The first run has already read the data when it reaches its first schedule call: hold it there.
+      if (!held) {
+        held = true;
+        await gate;
+      }
       return 'id';
     });
 
     const first = requestReminderSync();
-    await Promise.resolve();
     await new Promise((r) => setImmediate(r));
-    // The tutor edits the record while the first run waits.
+    expect(events).toEqual(['cancel', 'schedule 2026-11-25']);
+    // The tutor edits the record while the first run is in flight, and more requests arrive.
     db.update(vaccinations).set({ nextDueOn: '2026-12-09' }).run();
     const second = requestReminderSync();
     const third = requestReminderSync();
+    await new Promise((r) => setImmediate(r));
+    expect(events).toEqual(['cancel', 'schedule 2026-11-25']); // nothing interleaves while it is held
+
     release();
     await Promise.all([first, second, third]);
 
     expect(events).toEqual([
       'cancel',
-      'schedule Thor: Antirrábica vence em 7 dias',
-      'schedule Thor: Antirrábica vence hoje',
+      'schedule 2026-11-25',
+      'schedule 2026-12-02',
       'cancel',
-      'schedule Thor: Antirrábica vence em 7 dias',
-      'schedule Thor: Antirrábica vence hoje',
+      'schedule 2026-12-02',
+      'schedule 2026-12-09',
     ]);
-    expect(triggerDates().slice(-1)[0].toISOString()).toBe('2026-12-09T12:00:00.000Z');
+    expect(n.cancelAllScheduledNotificationsAsync).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses the local date as today at 22:00, when the UTC date is already the next day', async () => {
+    jest.setSystemTime(new Date(2026, 10, 12, 22, 0, 0));
+    expect(new Date().toISOString().slice(0, 10)).toBe('2026-11-13');
+    const pet = addPet();
+    createVaccination(db, { petId: pet.id, vaccineName: 'Antirrábica', appliedOn: '2025-11-13', nextDueOn: '2026-11-13' });
+    createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2025-11-12', nextDueOn: '2026-11-12' });
+
+    await syncReminders();
+
+    // Tomorrow (the 13th) 09:00 is ahead; the 12th at 09:00 is behind us. A UTC "today" would drop the 13th.
+    expect(bodies()).toEqual(['Thor: Antirrábica vence hoje']);
+    expect(triggerDates().map((d) => d.toISOString())).toEqual(['2026-11-13T12:00:00.000Z']);
   });
 });
 

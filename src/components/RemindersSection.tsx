@@ -3,8 +3,7 @@ import { StyleSheet, Switch, Text, View, Pressable } from 'react-native';
 import type { Pet, Vaccination } from '@/data/types';
 import { catalogMatcher } from '@/catalog';
 import { formatBrDate } from '@/domain/dateInput';
-import { todayLocal } from '@/domain/dates';
-import { planReminders } from '@/domain/reminders';
+import { earliestReminderDay, planReminders } from '@/domain/reminders';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme';
 
@@ -35,12 +34,12 @@ export function RemindersSection({ pet, vaccination, isCurrent, offsetsDays, onT
   const unavailable = unavailableMessage(pet, vaccination, isCurrent);
   const enabled = vaccination.remindersEnabled;
 
-  // The dates this record alone would get: the planner decides which ones are still ahead.
+  // The dates this record alone would get, with the same cut-off the scheduler uses.
   const dates = planReminders({
     pets: [pet],
     vaccinations: [vaccination],
     offsetsDays,
-    today: todayLocal(),
+    today: earliestReminderDay(),
     limit: offsetsDays.length,
     matcherFor: catalogMatcher,
   }).sort((a, b) => b.daysBefore - a.daysBefore);

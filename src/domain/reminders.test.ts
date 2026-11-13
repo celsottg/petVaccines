@@ -1,7 +1,7 @@
 import type { Pet, Vaccination } from '@/data/types';
 
 import type { CatalogMatcher } from './current';
-import { planReminders } from './reminders';
+import { earliestReminderDay, planReminders, reminderFireDate } from './reminders';
 
 const TODAY = '2026-11-12';
 const noCatalog: CatalogMatcher = () => undefined;
@@ -61,20 +61,26 @@ describe('planReminders', () => {
     expect(plan([pet({ status: 'archived' })], [vaccination()])).toEqual([]);
   });
 
-  it('plans nothing for a previous application, only for the current one', () => {
-    const previous = vaccination({ vaccineName: 'Antirrábica', appliedOn: '2024-12-02', nextDueOn: '2025-12-02' });
+  it('plans nothing for a previous application even when it still has a future next dose', () => {
+    const previous = vaccination({ vaccineName: 'Antirrábica', appliedOn: '2024-12-02', nextDueOn: '2026-12-20' });
     const current = vaccination({ vaccineName: 'Antirrábica', appliedOn: '2025-12-02', nextDueOn: '2026-12-02' });
     const result = plan([pet()], [previous, current]);
     expect(result.map((r) => r.vaccinationId)).toEqual([current.id, current.id]);
+    expect(plan([pet()], [previous]).map((r) => r.vaccinationId)).toEqual([previous.id, previous.id]);
   });
 
-  it('uses the matcher of the pet species to decide what is the same vaccine', () => {
+  it('uses the catalog matcher to decide that a free name and a catalog record are the same vaccine', () => {
+    // Same vaccine ONLY through the matcher: different names, one without a catalog id.
+    const older = vaccination({ vaccineName: 'Antirrábica', catalogId: null, appliedOn: '2024-12-02', nextDueOn: '2026-12-20' });
+    const newer = vaccination({ vaccineName: 'Raiva', catalogId: 'dog-rabies', appliedOn: '2025-12-02', nextDueOn: '2026-12-02' });
     const matcherFor = jest.fn((species: 'dog' | 'cat'): CatalogMatcher => (name) => (name === 'antirrabica' ? `${species}-rabies` : undefined));
-    const older = vaccination({ vaccineName: 'Antirrábica', appliedOn: '2024-12-02', nextDueOn: '2025-12-02' });
-    const newer = vaccination({ vaccineName: ' antirrabica ', appliedOn: '2025-12-02', nextDueOn: '2026-12-02' });
-    const result = plan([pet()], [older, newer], { matcherFor });
-    expect(new Set(result.map((r) => r.vaccinationId))).toEqual(new Set([newer.id]));
+
+    const withMatcher = plan([pet()], [older, newer], { matcherFor });
+    expect(new Set(withMatcher.map((r) => r.vaccinationId))).toEqual(new Set([newer.id]));
     expect(matcherFor).toHaveBeenCalledWith('dog');
+
+    const withoutMatcher = plan([pet()], [older, newer]);
+    expect(new Set(withoutMatcher.map((r) => r.vaccinationId))).toEqual(new Set([older.id, newer.id]));
   });
 
   it('plans nothing when reminders are disabled or there is no next dose', () => {
@@ -126,5 +132,28 @@ describe('planReminders', () => {
     const b = vaccination({ vaccineName: 'Antirrábica', petId: 'pet-2', nextDueOn: '2026-12-10' });
     const result = plan([pet(), rex], [a, b]);
     expect(new Set(result.map((r) => r.petName))).toEqual(new Set(['Thor', 'Rex']));
+  });
+});
+
+describe('earliestReminderDay', () => {
+  it('is today while 09:00 is still ahead', () => {
+    expect(earliestReminderDay(new Date(2026, 10, 12, 8, 59, 59))).toBe('2026-11-12');
+  });
+
+  it('is tomorrow from 09:00 on, since a reminder at that instant is not in the future', () => {
+    expect(earliestReminderDay(new Date(2026, 10, 12, 9, 0, 0))).toBe('2026-11-13');
+    expect(earliestReminderDay(new Date(2026, 10, 12, 22, 0, 0))).toBe('2026-11-13');
+  });
+
+  it('uses the local calendar date, not the UTC one (22:00 in UTC-3 is already the next day in UTC)', () => {
+    expect(earliestReminderDay(new Date(2026, 10, 12, 1, 0, 0))).toBe('2026-11-12');
+  });
+});
+
+describe('reminderFireDate', () => {
+  it('is 09:00 local on the calendar date, not a UTC instant', () => {
+    const date = reminderFireDate('2026-12-02');
+    expect([date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()]).toEqual([2026, 11, 2, 9]);
+    expect(date.toISOString()).toBe('2026-12-02T12:00:00.000Z');
   });
 });

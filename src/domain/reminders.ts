@@ -1,5 +1,22 @@
 import { splitCurrent, type CatalogMatcher } from './current';
-import { addDays, type IsoDate } from './dates';
+import { addDays, todayLocal, type IsoDate } from './dates';
+
+const FIRE_HOUR = 9;
+
+/** The instant a reminder fires: 09:00 local time on the calendar date (never parsed as UTC). */
+export function reminderFireDate(fireOn: IsoDate): Date {
+  const [year, month, day] = fireOn.split('-').map(Number);
+  return new Date(year, month - 1, day, FIRE_HOUR, 0, 0, 0);
+}
+
+/**
+ * The first day a reminder can still fire on: today while 09:00 is ahead, otherwise tomorrow.
+ * The planner's `today` for both the scheduler and the screens, so they agree on what is listed.
+ */
+export function earliestReminderDay(now: Date = new Date()): IsoDate {
+  const today = todayLocal(now);
+  return now.getTime() < reminderFireDate(today).getTime() ? today : addDays(today, 1);
+}
 
 // Structural subsets of the data layer's `Pet` and `Vaccination`, so the domain stays free of the data layer.
 interface ReminderPet {
