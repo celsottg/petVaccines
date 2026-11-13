@@ -1,4 +1,6 @@
-import { fireEvent } from '@testing-library/react-native';
+import { act, fireEvent } from '@testing-library/react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { View } from 'react-native';
 
@@ -10,7 +12,11 @@ import { createVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
 import { pets, settings } from '@/db/schema';
 import { addDays, todayLocal } from '@/domain/dates';
+import { fakeFs } from '@/services/fakeFileSystem';
 
+jest.mock('expo-file-system', () => jest.requireActual('@/services/fakeFileSystem').fakeModule);
+jest.mock('expo-print', () => ({ printToFileAsync: jest.fn() }));
+jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(), shareAsync: jest.fn() }));
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
 
 const routes = {
@@ -32,6 +38,14 @@ describe('Carteira do pet screen', () => {
   beforeEach(() => {
     db.delete(pets).run();
     db.delete(settings).run();
+    fakeFs.reset();
+    jest.clearAllMocks();
+    jest.mocked(Sharing.isAvailableAsync).mockResolvedValue(true);
+    jest.mocked(Sharing.shareAsync).mockResolvedValue(undefined);
+    jest.mocked(Print.printToFileAsync).mockImplementation(async () => {
+      fakeFs.addFile('file:///cache/Print/x.pdf', 10);
+      return { uri: 'file:///cache/Print/x.pdf', numberOfPages: 1 };
+    });
   });
 
   it('shows the pet and an invitation to register the first vaccine', async () => {
@@ -201,6 +215,92 @@ describe('Carteira do pet screen', () => {
       expect(db.select().from(pets).all()[0]).toMatchObject({ status: 'active', archivedReason: null });
       expect(screen.getByRole('button', { name: 'Nova vacina' })).toBeOnTheScreen();
       expect(screen.queryByRole('button', { name: 'Reativar carteira' })).toBeNull();
+    });
+  });
+
+  describe('"Exportar PDF"', () => {
+    const exportButton = () => screen.getByRole('button', { name: 'Exportar PDF' });
+
+    it('is hidden while the wallet has no vaccination', async () => {
+      const pet = newPet(db);
+      await renderWallet(pet.id);
+      expect(screen.queryByRole('button', { name: 'Exportar PDF' })).toBeNull();
+    });
+
+    it('generates the PDF from the stored records and opens the share sheet', async () => {
+      const pet = newPet(db, { name: 'Thor' });
+      vaccinate(pet.id, 'V10', '2026-03-18');
+      await renderWallet(pet.id);
+
+      await fireEvent.press(exportButton());
+
+      expect((jest.mocked(Print.printToFileAsync).mock.calls[0][0] as { html: string }).html).toContain('V10');
+      expect(Sharing.shareAsync).toHaveBeenCalledWith(
+        `file:///cache/carteira-thor-${todayLocal()}.pdf`,
+        expect.objectContaining({ mimeType: 'application/pdf' }),
+      );
+      expect(screen.queryByText('Não foi possível gerar o PDF. Tente novamente.')).toBeNull();
+    });
+
+    it('is available for a wallet that was closed', async () => {
+      const pet = newPet(db, { name: 'Bolinha' });
+      vaccinate(pet.id, 'V10', '2020-03-18');
+      archivePet(db, pet.id, 'deceased', null);
+      await renderWallet(pet.id);
+
+      await fireEvent.press(exportButton());
+
+      expect(Sharing.shareAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows a busy state and ignores a second tap while generating', async () => {
+      const pet = newPet(db);
+      vaccinate(pet.id, 'V10', '2026-03-18');
+      let finish!: () => void;
+      jest.mocked(Print.printToFileAsync).mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            finish = () => {
+              fakeFs.addFile('file:///cache/Print/x.pdf', 10);
+              resolve({ uri: 'file:///cache/Print/x.pdf', numberOfPages: 1 });
+            };
+          }),
+      );
+      await renderWallet(pet.id);
+
+      await fireEvent.press(exportButton());
+      const busy = screen.getByRole('button', { name: 'Gerando PDF…' });
+      expect(busy.props.accessibilityState).toMatchObject({ busy: true, disabled: true });
+      await fireEvent.press(busy);
+      await act(async () => finish());
+
+      expect(Print.printToFileAsync).toHaveBeenCalledTimes(1);
+      expect((await screen.findByRole('button', { name: 'Exportar PDF' })).props.accessibilityState?.busy).toBeFalsy();
+    });
+
+    it('shows an error and allows a retry when generating fails', async () => {
+      const pet = newPet(db);
+      vaccinate(pet.id, 'V10', '2026-03-18');
+      jest.mocked(Print.printToFileAsync).mockRejectedValueOnce(new Error('boom'));
+      await renderWallet(pet.id);
+
+      await fireEvent.press(exportButton());
+      expect(screen.getByText('Não foi possível gerar o PDF. Tente novamente.')).toBeOnTheScreen();
+
+      await fireEvent.press(exportButton());
+      expect(screen.queryByText('Não foi possível gerar o PDF. Tente novamente.')).toBeNull();
+      expect(Sharing.shareAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('says so when the device cannot share files', async () => {
+      const pet = newPet(db);
+      vaccinate(pet.id, 'V10', '2026-03-18');
+      jest.mocked(Sharing.isAvailableAsync).mockResolvedValue(false);
+      await renderWallet(pet.id);
+
+      await fireEvent.press(exportButton());
+
+      expect(screen.getByText('Este aparelho não permite compartilhar arquivos.')).toBeOnTheScreen();
     });
   });
 

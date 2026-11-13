@@ -8,9 +8,11 @@ interface ButtonProps {
   /** Longer label for screen readers when the visible text needs context. */
   accessibilityLabel?: string;
   variant?: 'primary' | 'secondary' | 'danger';
+  /** A long action is running: announced to screen readers, and presses are ignored. */
+  busy?: boolean;
 }
 
-export function Button({ label, onPress, variant = 'primary', accessibilityLabel }: ButtonProps) {
+export function Button({ label, onPress, variant = 'primary', accessibilityLabel, busy = false }: ButtonProps) {
   const { colors, spacing, radius, typography } = useTheme();
   const palette = {
     primary: { background: colors.primary, border: colors.primary, text: colors.onPrimary },
@@ -22,7 +24,8 @@ export function Button({ label, onPress, variant = 'primary', accessibilityLabel
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      onPress={onPress}
+      accessibilityState={busy ? { busy: true, disabled: true } : undefined}
+      onPress={busy ? undefined : onPress}
       style={({ pressed }) => [
         styles.button,
         {
