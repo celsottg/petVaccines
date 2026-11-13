@@ -1,0 +1,47 @@
+{
+  "country": "BR",
+  "vaccines": [
+    {
+      "id": "br-dog-polyvalent",
+      "name": "Polivalente (V8/V10)",
+      "species": "dog",
+      "boosterIntervalDays": 365
+    },
+    {
+      "id": "br-dog-rabies",
+      "name": "Antirrábica",
+      "species": "dog",
+      "boosterIntervalDays": 365
+    },
+    {
+      "id": "br-dog-kennel-cough",
+      "name": "Gripe canina",
+      "species": "dog",
+      "boosterIntervalDays": 365
+    },
+    {
+      "id": "br-dog-giardia",
+      "name": "Giárdia",
+      "species": "dog",
+      "boosterIntervalDays": 365
+    },
+    {
+      "id": "br-dog-leishmaniasis",
+      "name": "Leishmaniose",
+      "species": "dog",
+      "boosterIntervalDays": 365
+    },
+    {
+      "id": "br-cat-polyvalent",
+      "name": "Polivalente (V3/V4/V5)",
+      "species": "cat",
+      "boosterIntervalDays": 365
+    },
+    {
+      "id": "br-cat-rabies",
+      "name": "Antirrábica",
+      "species": "cat",
+      "boosterIntervalDays": 365
+    }
+  ]
+}

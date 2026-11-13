@@ -22,6 +22,8 @@ App móvel de código aberto para guardar a carteira de vacinação de cães e g
 
 > O registro é declaratório, feito pelo tutor. Não substitui a carteira de vacinação emitida pelo veterinário.
 
+> **Catálogo de vacinas:** o conteúdo inicial (`src/catalog/br.json`) ainda aguarda revisão veterinária e não deve ser tratado como recomendação clínica antes do primeiro release.
+
 ## Como rodar
 
 Pré-requisitos: [Node.js](https://nodejs.org) LTS e um emulador Android/iOS ou um aparelho.
