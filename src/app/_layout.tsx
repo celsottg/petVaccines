@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { ReminderSync } from '@/components/ReminderSync';
 import { db } from '@/db/client';
 import migrations from '@/db/migrations/migrations';
 import { removeOrphanFiles } from '@/services/files';
@@ -55,6 +56,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <StatusBar style="auto" />
+      <ReminderSync />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.surface },

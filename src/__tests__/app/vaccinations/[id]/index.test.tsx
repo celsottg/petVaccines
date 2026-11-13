@@ -10,9 +10,12 @@ import { newAttachment, newPet } from '@/data/testHelpers';
 import { createVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
 import { attachments, pets, settings, vaccinations } from '@/db/schema';
+import { setSetting } from '@/data/settings';
+import { formatBrDate } from '@/domain/dateInput';
 import { addDays, todayLocal } from '@/domain/dates';
 import { deleteFiles } from '@/services/files';
 import { preparePhoto } from '@/services/photos';
+import { getNotificationPermission } from '@/services/reminders';
 
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
 jest.mock('@/services/files', () => ({
@@ -21,6 +24,7 @@ jest.mock('@/services/files', () => ({
   deleteFiles: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/services/photos', () => ({ preparePhoto: jest.fn() }));
+jest.mock('@/services/reminders', () => ({ getNotificationPermission: jest.fn() }));
 
 let photoSeq = 100;
 const prepared = () => {
@@ -43,11 +47,13 @@ const stored = () => db.select().from(vaccinations).all();
 describe('Detalhe da vacina screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(getNotificationPermission).mockResolvedValue('granted');
     db.delete(pets).run();
     db.delete(settings).run();
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
     // Implementations set with mockImplementation must not leak into the next test.
     jest.mocked(preparePhoto).mockReset();
@@ -55,6 +61,8 @@ describe('Detalhe da vacina screen', () => {
   });
 
   it('shows the data that was filled in and leaves out the rest', async () => {
+    // Fixed day: the record's reminders must still be ahead whenever the suite runs.
+    jest.useFakeTimers({ doNotFake: ['hrtime', 'nextTick', 'performance', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'], now: new Date(2026, 10, 12, 10) });
     const pet = newPet(db, { name: 'Thor' });
     const record = createVaccination(db, {
       petId: pet.id,
@@ -70,7 +78,8 @@ describe('Detalhe da vacina screen', () => {
 
     expect(screen.getByText('Thor')).toBeOnTheScreen();
     expect(screen.getByText('02/12/2025')).toBeOnTheScreen();
-    expect(screen.getByText('02/12/2026')).toBeOnTheScreen();
+    // The next dose row and the reminder of the day itself (Lembretes block) show the same date.
+    expect(screen.getAllByText('02/12/2026')).toHaveLength(2);
     expect(screen.getByText('L123')).toBeOnTheScreen();
     expect(screen.getByText('Dra. Ana · CRMV SP-1234')).toBeOnTheScreen();
     expect(screen.queryByText('Marca')).toBeNull();
@@ -456,6 +465,156 @@ describe('Detalhe da vacina screen', () => {
       await renderDetail(bare.id);
 
       expect(screen.queryByText('Comprovante (até 3 fotos)')).toBeNull();
+    });
+  });
+
+  describe('Lembretes', () => {
+    const inDays = (days: number) => addDays(todayLocal(), days);
+    const withDose = (days: number, extra: Partial<Parameters<typeof createVaccination>[1]> = {}) => {
+      const pet = newPet(db, { name: 'Thor' });
+      const created = createVaccination(db, {
+        petId: pet.id,
+        vaccineName: 'Antirrábica',
+        appliedOn: addDays(todayLocal(), -300),
+        nextDueOn: inDays(days),
+        batch: 'L123',
+        brand: 'Vanguard',
+        vetName: 'Dra. Ana',
+        vetLicense: 'SP-1234',
+        clinic: 'PetCare',
+        notes: 'Sem reação',
+        ...extra,
+      });
+      return { pet, created };
+    };
+    const reminderSwitch = () => screen.getByRole('switch', { name: 'Lembretes desta vacina' });
+
+    it('lists the reminder dates and shows the switch on', async () => {
+      const { created } = withDose(20);
+
+      await renderDetail(created.id);
+
+      expect(screen.getByText('Lembretes')).toBeOnTheScreen();
+      expect(screen.getByText('7 dias antes')).toBeOnTheScreen();
+      expect(screen.getByText(formatBrDate(inDays(13)))).toBeOnTheScreen();
+      expect(screen.getByText('No dia')).toBeOnTheScreen();
+      expect(reminderSwitch()).toBeChecked();
+    });
+
+    it('follows the configured offsets, with the singular for 1 day', async () => {
+      setSetting(db, 'reminder_offsets_days', [0, 14, 1]);
+      const { created } = withDose(20);
+
+      await renderDetail(created.id);
+
+      expect(screen.getByText('14 dias antes')).toBeOnTheScreen();
+      expect(screen.getByText('1 dia antes')).toBeOnTheScreen();
+      expect(screen.getByText('No dia')).toBeOnTheScreen();
+    });
+
+    it('leaves out the dates that already passed', async () => {
+      const soon = withDose(3);
+      await renderDetail(soon.created.id);
+      expect(screen.queryByText('7 dias antes')).toBeNull();
+      expect(screen.getByText('No dia')).toBeOnTheScreen();
+    });
+
+    it('says all dates passed when the dose is already overdue', async () => {
+      const { created } = withDose(-2);
+
+      await renderDetail(created.id);
+
+      expect(screen.getByText('Todas as datas de lembrete já passaram.')).toBeOnTheScreen();
+      expect(reminderSwitch()).toBeChecked();
+    });
+
+    it('turns the reminders off with a guarded write that resends every field', async () => {
+      const { created } = withDose(20);
+      await renderDetail(created.id);
+
+      await fireEvent.press(reminderSwitch());
+
+      expect(stored()).toEqual([{ ...created, remindersEnabled: false, updatedAt: expect.any(String) }]);
+      expect(reminderSwitch()).not.toBeChecked();
+      expect(screen.getByText('Lembretes desligados para esta vacina.')).toBeOnTheScreen();
+      expect(screen.queryByText('7 dias antes')).toBeNull();
+      expect(screen.getByText('Lembretes')).toBeOnTheScreen();
+    });
+
+    it('turns them back on', async () => {
+      const { created } = withDose(20, { remindersEnabled: false });
+      await renderDetail(created.id);
+      expect(reminderSwitch()).not.toBeChecked();
+
+      await fireEvent.press(reminderSwitch());
+
+      expect(stored()[0].remindersEnabled).toBe(true);
+      expect(screen.getByText('7 dias antes')).toBeOnTheScreen();
+    });
+
+    it('shows a message and keeps the switch when the write fails, then works on retry', async () => {
+      const { created } = withDose(20);
+      await renderDetail(created.id);
+      const failing = jest.spyOn(db, 'transaction').mockImplementation(() => {
+        throw new Error('disk full');
+      });
+
+      await fireEvent.press(reminderSwitch());
+
+      expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+      expect(reminderSwitch()).toBeChecked();
+      expect(stored()[0].remindersEnabled).toBe(true);
+
+      failing.mockRestore();
+      await fireEvent.press(reminderSwitch());
+      expect(stored()[0].remindersEnabled).toBe(false);
+    });
+
+    it('warns that reminders are turned off in the system when the permission was denied', async () => {
+      jest.mocked(getNotificationPermission).mockResolvedValue('denied');
+      const { created } = withDose(20);
+
+      await renderDetail(created.id);
+
+      expect(await screen.findByText(/Os lembretes estão desligados no sistema/)).toBeOnTheScreen();
+    });
+
+    it('shows no warning when the permission is granted or not asked yet', async () => {
+      const { created } = withDose(20);
+      await renderDetail(created.id);
+      expect(screen.queryByText(/desligados no sistema/)).toBeNull();
+    });
+
+    it('explains, with no switch, that a previous application has no reminders', async () => {
+      const pet = newPet(db);
+      const old = createVaccination(db, { petId: pet.id, vaccineName: 'Antirrábica', appliedOn: '2024-01-01', nextDueOn: inDays(20) });
+      createVaccination(db, { petId: pet.id, vaccineName: 'Antirrábica', appliedOn: '2025-01-01', nextDueOn: inDays(40) });
+
+      await renderDetail(old.id);
+
+      expect(screen.getByText('Só a aplicação mais recente de cada vacina tem lembretes.')).toBeOnTheScreen();
+      expect(screen.queryByRole('switch')).toBeNull();
+    });
+
+    it('explains, with no switch, that a record without a next dose has no reminders', async () => {
+      const pet = newPet(db);
+      const bare = createVaccination(db, { petId: pet.id, vaccineName: 'Leptospirose', appliedOn: '2026-03-01' });
+
+      await renderDetail(bare.id);
+
+      expect(screen.getByText('Sem próxima dose, não há lembretes.')).toBeOnTheScreen();
+      expect(screen.queryByRole('switch')).toBeNull();
+    });
+
+    it('explains, with no switch, that a closed wallet has no reminders', async () => {
+      const { pet, created } = withDose(20);
+      archivePet(db, pet.id, 'other', null);
+
+      await renderDetail(created.id);
+
+      expect(screen.getByText('A carteira está encerrada, então não há lembretes.')).toBeOnTheScreen();
+      expect(screen.queryByRole('switch')).toBeNull();
+      expect(screen.queryByText(/desligados no sistema/)).toBeNull();
     });
   });
 

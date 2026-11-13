@@ -13,6 +13,7 @@ import { vaccinationInputSchema } from '@/domain/validation';
 import { t } from '@/i18n';
 import { discardFiles } from '@/services/discardFiles';
 import { photoUri } from '@/services/files';
+import { ensureNotificationPermission } from '@/services/reminders';
 import { preparePhoto, type PreparedPhoto } from '@/services/photos';
 import { useTheme } from '@/theme';
 
@@ -129,12 +130,15 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
       vetLicense: blankToNull(vetLicense),
       clinic: blankToNull(clinic),
       notes: blankToNull(notes),
-      // updateVaccination replaces every field, so the current switch travels with the edit (Task 8 owns it).
+      // updateVaccination replaces every field, so the current switch travels with the edit.
       remindersEnabled: vaccination?.remindersEnabled ?? true,
     };
     guard.run(() => onSubmit(input, pending), {
       onSuccess: () => {
         saved.current = true;
+        // The first record with a next dose is when the tutor learns reminders exist, so that is when the
+        // system asks. It never fails or delays the save, and a refusal leaves the app working as usual.
+        if (input.nextDueOn) void ensureNotificationPermission();
         onSaved();
       },
     });
