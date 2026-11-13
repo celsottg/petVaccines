@@ -30,7 +30,7 @@ export function ConfirmDialog({
 
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onCancel}>
-      <View style={[styles.backdrop, { padding: spacing.lg }]}>
+      <View style={[styles.backdrop, { padding: spacing.lg, backgroundColor: colors.scrim }]}>
         <View
           accessibilityViewIsModal
           style={[styles.dialog, { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md }]}>
@@ -49,7 +49,6 @@ export function ConfirmDialog({
 }
 
 const styles = StyleSheet.create({
-  // Scrim over any screen; it is not part of the theme palette.
-  backdrop: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+  backdrop: { flex: 1, justifyContent: 'center' },
   dialog: {},
 });
