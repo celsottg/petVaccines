@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { catalogMatcher, findCatalogVaccine } from '@/catalog';
+import { MAX_ATTACHMENTS_PER_VACCINATION } from '@/data/attachments';
 import type { Pet, Vaccination, VaccinationInput } from '@/data/types';
 import { normalizeVaccineName } from '@/domain/current';
 import { formatBrDate, maskBrDate, parseOptionalBrDate } from '@/domain/dateInput';
@@ -10,14 +11,21 @@ import { todayLocal } from '@/domain/dates';
 import { suggestNextDue } from '@/domain/nextDose';
 import { vaccinationInputSchema } from '@/domain/validation';
 import { t } from '@/i18n';
+import { discardFiles } from '@/services/discardFiles';
+import { photoUri } from '@/services/files';
+import { preparePhoto, type PreparedPhoto } from '@/services/photos';
 import { useTheme } from '@/theme';
 
 import { Button } from './Button';
+import { ConfirmDialog } from './ConfirmDialog';
 import { FormError } from './FormError';
 import { FormField } from './FormField';
+import { ProofPhotos } from './ProofPhotos';
+import { SavedProofPhotos } from './SavedProofPhotos';
 import { VaccineNameField } from './VaccineNameField';
 import { dateErrorLabel } from './petLabels';
 import { useGuardedAction } from './useGuardedAction';
+import { usePhotoPicker } from './usePhotoPicker';
 
 type VaccinationFields = Omit<VaccinationInput, 'petId'>;
 
@@ -27,8 +35,12 @@ interface VaccinationFormProps {
   vaccination?: Vaccination;
   /** Vaccine name already chosen, such as when registering a booster. */
   initialName?: string;
-  /** Writes the record. A throw is shown as a save error. */
-  onSubmit: (input: VaccinationFields) => void;
+  /**
+   * Writes the record. A throw is shown as a save error. `photos` are the proof
+   * photos chosen before the record existed; they are always empty when editing,
+   * where photos are attached to the saved record right away.
+   */
+  onSubmit: (input: VaccinationFields, photos: PreparedPhoto[]) => void;
   /** Runs after a successful write, typically navigation. */
   onSaved: () => void;
 }
@@ -53,6 +65,21 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
   const [notes, setNotes] = useState(vaccination?.notes ?? '');
   const [errors, setErrors] = useState<Errors>({});
   const guard = useGuardedAction();
+  const [pending, setPending] = useState<PreparedPhoto[]>([]);
+  const [removingPending, setRemovingPending] = useState<PreparedPhoto>();
+  const picker = usePhotoPicker(preparePhoto, (photo) => setPending((list) => [...list, photo]));
+  // Pending files exist on disk before any row points to them: they go if the form is left unsaved.
+  const pendingRef = useRef(pending);
+  useEffect(() => {
+    pendingRef.current = pending;
+  });
+  const saved = useRef(false);
+  useEffect(
+    () => () => {
+      if (!saved.current && pendingRef.current.length > 0) discardFiles(pendingRef.current.map((p) => p.file));
+    },
+    [],
+  );
 
   // An edit that leaves the name alone keeps the record's own catalog link; otherwise the typed name decides.
   const nameUnchanged = vaccination !== undefined && name === vaccination.vaccineName;
@@ -105,7 +132,12 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
       // updateVaccination replaces every field, so the current switch travels with the edit (Task 8 owns it).
       remindersEnabled: vaccination?.remindersEnabled ?? true,
     };
-    guard.run(() => onSubmit(input), { onSuccess: onSaved });
+    guard.run(() => onSubmit(input, pending), {
+      onSuccess: () => {
+        saved.current = true;
+        onSaved();
+      },
+    });
   }
 
   return (
@@ -147,7 +179,22 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
           </View>
         </View>
         <Text style={[typography.caption, { color: colors.textSecondary }]}>{t('vaccinations.form.nextDueHint')}</Text>
-        {/* Task 7 adds the proof photos block here. */}
+        {vaccination ? (
+          <SavedProofPhotos vaccinationId={vaccination.id} editable />
+        ) : (
+          <ProofPhotos
+            photos={pending.map((photo, index) => ({
+              key: photo.id,
+              uri: photoUri(photo.file),
+              label: t('photos.pendingThumbnail', { index: index + 1, total: pending.length }),
+            }))}
+            editable
+            onAdd={picker.pick}
+            onOpen={(id) => setRemovingPending(pending.find((photo) => photo.id === id))}
+            hint={pending.length < MAX_ATTACHMENTS_PER_VACCINATION ? t('photos.formHint') : undefined}
+            message={picker.message}
+          />
+        )}
         <Text accessibilityRole="header" style={[typography.label, { color: colors.textSecondary }]}>
           {t('vaccinations.form.detailsTitle')}
         </Text>
@@ -162,6 +209,22 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
       <View style={[styles.footer, { padding: spacing.md, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <Button label={t('vaccinations.form.save')} onPress={submit} />
       </View>
+      <ConfirmDialog
+        visible={removingPending !== undefined}
+        destructive
+        title={t('photos.removePending.title')}
+        message={t('photos.removePending.message')}
+        confirmLabel={t('photos.removePending.confirm')}
+        cancelLabel={t('common.cancel')}
+        onCancel={() => setRemovingPending(undefined)}
+        onConfirm={() => {
+          if (removingPending) {
+            setPending((list) => list.filter((photo) => photo.id !== removingPending.id));
+            discardFiles([removingPending.file]);
+          }
+          setRemovingPending(undefined);
+        }}
+      />
     </SafeAreaView>
   );
 }

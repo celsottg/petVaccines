@@ -7,6 +7,7 @@ import { newAttachment, newPet, newVaccination } from './testHelpers';
 import {
   countVaccinationsCreatedAfter,
   createVaccination,
+  createVaccinationWithPhotos,
   deleteVaccination,
   updateVaccination,
 } from './vaccinations';
@@ -101,5 +102,49 @@ describe('countVaccinationsCreatedAfter', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe('createVaccinationWithPhotos', () => {
+  const photo = (n: number) => ({
+    id: `00000000-0000-4000-8000-00000000000${n}`,
+    file: `00000000-0000-4000-8000-00000000000${n}.jpg`,
+    sizeBytes: 1000,
+    width: 800,
+    height: 600,
+  });
+
+  it('creates the record and links every photo in one transaction', () => {
+    const db = createTestDb();
+    const pet = newPet(db);
+
+    const vaccination = createVaccinationWithPhotos(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-11-01' }, [
+      photo(1),
+      photo(2),
+    ]);
+
+    expect(
+      db.select().from(attachments).all().map((row) => [row.id, row.vaccinationId, row.file]),
+    ).toEqual([
+      [photo(1).id, vaccination.id, photo(1).file],
+      [photo(2).id, vaccination.id, photo(2).file],
+    ]);
+  });
+
+  it('stores nothing when a photo cannot be linked, so a retry does not duplicate the record', () => {
+    const db = createTestDb();
+    const pet = newPet(db);
+
+    expect(() =>
+      createVaccinationWithPhotos(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-11-01' }, [
+        photo(1),
+        photo(2),
+        photo(3),
+        photo(4),
+      ]),
+    ).toThrow('ATTACHMENT_LIMIT');
+
+    expect(db.select().from(vaccinations).all()).toEqual([]);
+    expect(db.select().from(attachments).all()).toEqual([]);
   });
 });

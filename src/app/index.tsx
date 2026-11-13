@@ -7,6 +7,7 @@ import { PetCard } from '@/components/PetCard';
 import { badgeLabel, petDetails } from '@/components/petLabels';
 import { useArchivedCount, usePetSummaries } from '@/data/usePets';
 import { todayLocal } from '@/domain/dates';
+import { petPhotoUri } from '@/services/files';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme';
 
@@ -36,6 +37,7 @@ export default function PetsScreen() {
             key={pet.id}
             name={pet.name}
             details={petDetails(pet, today)}
+            photoUri={pet.photoFile ? petPhotoUri(pet.photoFile) : undefined}
             badge={badge ? { status: badge.status, label: badgeLabel(badge) } : undefined}
             onPress={() => router.push({ pathname: '/pets/[petId]', params: { petId: pet.id } })}
           />

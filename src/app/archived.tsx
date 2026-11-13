@@ -11,6 +11,7 @@ import { reactivatePet } from '@/data/pets';
 import { usePetSummaries } from '@/data/usePets';
 import { db } from '@/db/client';
 import { todayLocal } from '@/domain/dates';
+import { petPhotoUri } from '@/services/files';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme';
 
@@ -37,6 +38,7 @@ export default function ArchivedScreen() {
           <PetCard
             name={pet.name}
             details={petDetails(pet, today)}
+            photoUri={pet.photoFile ? petPhotoUri(pet.photoFile) : undefined}
             note={archivedLine(pet.archivedReason, pet.archivedOn)}
             onPress={() => router.push({ pathname: '/pets/[petId]', params: { petId: pet.id } })}>
             <Button

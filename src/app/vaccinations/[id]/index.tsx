@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FormError } from '@/components/FormError';
 import { NotFound } from '@/components/NotFound';
+import { SavedProofPhotos } from '@/components/SavedProofPhotos';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useGuardedAction } from '@/components/useGuardedAction';
 import { statusLabel } from '@/components/vaccinationLabels';
@@ -16,6 +17,7 @@ import { db } from '@/db/client';
 import { formatBrDate } from '@/domain/dateInput';
 import { todayLocal } from '@/domain/dates';
 import { t } from '@/i18n';
+import { discardFiles } from '@/services/discardFiles';
 import { useTheme } from '@/theme';
 
 export default function VaccinationDetailScreen() {
@@ -24,6 +26,7 @@ export default function VaccinationDetailScreen() {
   const { colors, spacing, radius, typography } = useTheme();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const removedFiles = useRef<string[]>([]);
   const guard = useGuardedAction();
 
   // Also covers the moment right after the record is deleted, before navigation finishes.
@@ -70,7 +73,8 @@ export default function VaccinationDetailScreen() {
             </View>
           ))}
         </View>
-        {/* Task 7 adds the proof photos here; Task 8 adds the reminder dates and switch. */}
+        <SavedProofPhotos vaccinationId={vaccination.id} editable={active} />
+        {/* Task 8 adds the reminder dates and switch here. */}
         <FormError message={guard.error} />
       </ScrollView>
       {active ? (
@@ -104,11 +108,12 @@ export default function VaccinationDetailScreen() {
           setConfirmingDelete(false);
           guard.run(
             () => {
-              // The returned proof-photo file names are removed from disk in Task 7.
-              deleteVaccination(db, vaccination.id);
+              removedFiles.current = deleteVaccination(db, vaccination.id);
             },
             {
               onSuccess: () => {
+                // The record is gone; a file that cannot be removed now is swept at the next start.
+                discardFiles(removedFiles.current);
                 setLeaving(true);
                 router.dismissTo({ pathname: '/pets/[petId]', params: { petId: pet.id } });
               },

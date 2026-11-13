@@ -1,21 +1,31 @@
 import { fireEvent } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
+import { View } from 'react-native';
 
 import EditVaccinationScreen from '@/app/vaccinations/[id]/edit';
 import VaccinationDetailScreen from '@/app/vaccinations/[id]/index';
 import { archivePet } from '@/data/pets';
-import { newPet } from '@/data/testHelpers';
+import { newAttachment, newPet } from '@/data/testHelpers';
 import { createVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
-import { pets, settings, vaccinations } from '@/db/schema';
+import { attachments, pets, settings, vaccinations } from '@/db/schema';
+import { deleteFiles } from '@/services/files';
+import { preparePhoto } from '@/services/photos';
 
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
+jest.mock('@/services/files', () => ({
+  photoUri: (file: string) => `file:///docs/photos/${file}`,
+  petPhotoUri: (file: string) => `file:///docs/pets/${file}`,
+  deleteFiles: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/services/photos', () => ({ preparePhoto: jest.fn() }));
 
 const routes = {
   index: () => null,
   'vaccinations/[id]/index': VaccinationDetailScreen,
   'vaccinations/[id]/edit': EditVaccinationScreen,
+  'attachments/[id]': () => <View testID="viewer" />,
 };
 const renderEdit = (id: string) => renderRouter(routes, { initialUrl: `/vaccinations/${id}/edit` });
 const stored = () => db.select().from(vaccinations).all();
@@ -23,8 +33,16 @@ const save = () => fireEvent.press(screen.getByRole('button', { name: 'Salvar' }
 
 describe('Editar vacina screen', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     db.delete(pets).run();
     db.delete(settings).run();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    // Implementations set with mockImplementation must not leak into the next test.
+    jest.mocked(preparePhoto).mockReset();
+    jest.mocked(deleteFiles).mockReset().mockResolvedValue(undefined);
   });
 
   it('loads the record into the form', async () => {
@@ -190,7 +208,6 @@ describe('Editar vacina screen', () => {
     expect(update).toHaveBeenCalledTimes(1);
     expect(dismissTo).toHaveBeenCalledTimes(1);
     expect(stored()[0].brand).toBe('Vanguard');
-    jest.restoreAllMocks();
   });
 
   it('shows a message and does not navigate when the update fails, then saves on retry', async () => {
@@ -199,7 +216,7 @@ describe('Editar vacina screen', () => {
     await renderEdit(record.id);
     const dismissTo = jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
     await fireEvent.changeText(screen.getByLabelText('Marca'), 'Vanguard');
-    const failing = jest.spyOn(db, 'transaction').mockImplementation(() => {
+    jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
       throw new Error('disk full');
     });
 
@@ -209,10 +226,56 @@ describe('Editar vacina screen', () => {
     expect(dismissTo).not.toHaveBeenCalled();
     expect(stored()[0].brand).toBeNull();
 
-    failing.mockRestore();
     await save();
     expect(stored()[0].brand).toBe('Vanguard');
     expect(dismissTo).toHaveBeenCalledTimes(1);
-    jest.restoreAllMocks();
   });
+  describe('proof photos', () => {
+    const record = () =>
+      createVaccination(db, { petId: newPet(db).id, vaccineName: 'Leptospirose', appliedOn: '2026-03-01' });
+
+    it('lists the saved photos and opens one in the viewer', async () => {
+      const saved = record();
+      const photo = newAttachment(db, saved.id);
+      await renderEdit(saved.id);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Abrir foto 1 de 1' }));
+
+      expect(screen).toHavePathname(`/attachments/${photo.id}`);
+    });
+
+    it('attaches a new photo to the saved record immediately, without saving the form', async () => {
+      const prepared = {
+        id: '00000000-0000-4000-8000-0000000000aa',
+        file: '00000000-0000-4000-8000-0000000000aa.jpg',
+        sizeBytes: 4321,
+        width: 1200,
+        height: 900,
+      };
+      jest.mocked(preparePhoto).mockResolvedValue(prepared);
+      const saved = record();
+      await renderEdit(saved.id);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Adicionar foto' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Escolher da galeria' }));
+
+      expect(db.select().from(attachments).all()).toEqual([
+        expect.objectContaining({ ...prepared, vaccinationId: saved.id }),
+      ]);
+      expect(screen.getByRole('button', { name: 'Abrir foto 1 de 1' })).toBeOnTheScreen();
+    });
+
+    it('keeps the photos when the form is saved and does not offer a fourth', async () => {
+      const saved = record();
+      for (let i = 0; i < 3; i += 1) newAttachment(db, saved.id);
+      await renderEdit(saved.id);
+
+      expect(screen.queryByRole('button', { name: 'Adicionar foto' })).toBeNull();
+      await save();
+
+      expect(db.select().from(attachments).all()).toHaveLength(3);
+      expect(deleteFiles).not.toHaveBeenCalled();
+    });
+  });
+
 });

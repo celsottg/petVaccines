@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -12,6 +12,7 @@ import { deletePet, updatePet } from '@/data/pets';
 import { usePet } from '@/data/usePets';
 import { db } from '@/db/client';
 import { t } from '@/i18n';
+import { discardFiles } from '@/services/discardFiles';
 import { useTheme } from '@/theme';
 
 export default function EditPetScreen() {
@@ -20,6 +21,7 @@ export default function EditPetScreen() {
   const { spacing } = useTheme();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const removedFiles = useRef<string[]>([]);
   const guard = useGuardedAction();
 
   // Also covers the moment right after the pet is deleted, before navigation finishes.
@@ -54,11 +56,12 @@ export default function EditPetScreen() {
           setConfirmingDelete(false);
           guard.run(
             () => {
-              // The returned file names (photo, proof photos) are removed from disk in Task 7.
-              deletePet(db, pet.id);
+              removedFiles.current = deletePet(db, pet.id);
             },
             {
               onSuccess: () => {
+                // The rows are gone; a file that cannot be removed now is swept at the next start.
+                discardFiles(removedFiles.current);
                 setLeaving(true);
                 router.dismissTo('/');
               },
