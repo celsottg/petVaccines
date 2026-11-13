@@ -34,7 +34,12 @@ export function useWallet(petId: string): { pet: Pet | undefined; wallet: Wallet
 }
 
 /** One vaccination with its pet and whether it is the current record; `detail` is undefined when either is missing. */
-export function useVaccinationDetail(id: string): { detail: VaccinationDetail | undefined; loaded: boolean } {
+export function useVaccinationDetail(id: string): {
+  detail: VaccinationDetail | undefined;
+  /** The days-before offsets of the reminders, from the settings. */
+  reminderOffsetsDays: number[];
+  loaded: boolean;
+} {
   const vaccinationRows = useLiveQuery(db.select().from(vaccinations).where(eq(vaccinations.id, id)), [id]);
   const vaccination: Vaccination | undefined = vaccinationRows.data[0];
   const petId = vaccination?.petId ?? '';
@@ -63,5 +68,8 @@ export function useVaccinationDetail(id: string): { detail: VaccinationDetail | 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- settingRows.data signals a settings change
   }, [vaccination, pet, siblingRows.data, attachmentRows.data, settingRows.data]);
 
-  return { detail, loaded };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- settingRows.data signals a settings change
+  const reminderOffsetsDays = useMemo(() => getSettings(db).reminderOffsetsDays, [settingRows.data]);
+
+  return { detail, reminderOffsetsDays, loaded };
 }

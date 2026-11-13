@@ -11,6 +11,7 @@ jest.mock('expo-router', () => ({
   Stack: () => <MockText>routes</MockText>,
 }));
 jest.mock('expo-status-bar', () => ({ StatusBar: () => null }));
+jest.mock('@/components/ReminderSync', () => ({ ReminderSync: () => <MockText>reminder sync</MockText> }));
 jest.mock('@/services/files', () => ({ removeOrphanFiles: jest.fn().mockResolvedValue(undefined) }));
 
 const mockUseMigrations = jest.fn();
@@ -42,6 +43,24 @@ describe('RootLayout', () => {
     expect(screen.getByText('no such table: pets')).toBeTruthy();
     expect(screen.queryByText('routes')).toBeNull();
   });
+  describe('reminder sync', () => {
+    it('mounts the single sync trigger once migrations succeed', async () => {
+      mockUseMigrations.mockReturnValue({ success: true, error: undefined });
+      await render(<RootLayout />);
+      expect(screen.getByText('reminder sync')).toBeTruthy();
+    });
+
+    it('does not mount it before migrations finish or when they fail', async () => {
+      mockUseMigrations.mockReturnValue({ success: false, error: undefined });
+      await render(<RootLayout />);
+      expect(screen.queryByText('reminder sync')).toBeNull();
+
+      mockUseMigrations.mockReturnValue({ success: false, error: new Error('no such table: pets') });
+      await render(<RootLayout />);
+      expect(screen.queryByText('reminder sync')).toBeNull();
+    });
+  });
+
   describe('orphan photo sweep', () => {
     it('does not run before migrations finish or when they fail', async () => {
       mockUseMigrations.mockReturnValue({ success: false, error: undefined });

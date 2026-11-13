@@ -12,6 +12,7 @@ import { db } from '@/db/client';
 import { attachments, pets, settings, vaccinations } from '@/db/schema';
 import { deleteFiles } from '@/services/files';
 import { preparePhoto } from '@/services/photos';
+import { ensureNotificationPermission } from '@/services/reminders';
 
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
 jest.mock('@/services/files', () => ({
@@ -20,6 +21,10 @@ jest.mock('@/services/files', () => ({
   deleteFiles: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/services/photos', () => ({ preparePhoto: jest.fn() }));
+jest.mock('@/services/reminders', () => ({
+  ensureNotificationPermission: jest.fn().mockResolvedValue(true),
+  getNotificationPermission: jest.fn().mockResolvedValue('granted'),
+}));
 
 const routes = {
   index: () => null,
@@ -84,6 +89,24 @@ describe('Editar vacina screen', () => {
 
     expect(stored()).toEqual([expect.objectContaining({ id: record.id, batch: null, brand: 'Vanguard' })]);
     expect(screen).toHavePathname(`/vaccinations/${record.id}`);
+  });
+
+  it('requests the notification permission when the saved record has a next dose', async () => {
+    const pet = newPet(db);
+    const withDose = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-03-01', nextDueOn: '2027-03-01' });
+    await renderEdit(withDose.id);
+    await fireEvent.changeText(screen.getByLabelText('Marca'), 'Vanguard');
+    await save();
+    expect(ensureNotificationPermission).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not request the permission when the saved record has no next dose', async () => {
+    const pet = newPet(db);
+    const record = createVaccination(db, { petId: pet.id, vaccineName: 'Leptospirose', appliedOn: '2026-03-01' });
+    await renderEdit(record.id);
+    await fireEvent.changeText(screen.getByLabelText('Marca'), 'Vanguard');
+    await save();
+    expect(ensureNotificationPermission).not.toHaveBeenCalled();
   });
 
   it('keeps the reminders switch, since updateVaccination replaces every field', async () => {

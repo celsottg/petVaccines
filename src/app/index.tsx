@@ -52,6 +52,12 @@ export default function PetsScreen() {
             </Text>
           </Pressable>
         ) : null}
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push('/settings')}
+          style={[styles.link, { paddingVertical: spacing.sm }]}>
+          <Text style={[typography.label, { color: colors.primary }]}>{t('settings.link')}</Text>
+        </Pressable>
       </ScrollView>
       <View style={[styles.footer, { padding: spacing.md, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <Button label={t('pets.add')} onPress={() => router.push('/pets/new')} />
@@ -65,5 +71,6 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1 },
   empty: { alignItems: 'center' },
   center: { textAlign: 'center' },
+  link: { minHeight: 48, justifyContent: 'center' },
   footer: { borderTopWidth: 1 },
 });

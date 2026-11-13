@@ -41,7 +41,8 @@ describe('i18n', () => {
     const missing: string[] = [];
     for (const f of files) {
       for (const m of fs.readFileSync(f, 'utf8').matchAll(/\bt\(\s*'([^']+)'/g)) {
-        if (t(m[1]) === m[1]) missing.push(`${path.basename(f)}: ${m[1]}`);
+        // `count` lets plural keys (`key_one`, `key_other`) resolve.
+        if (t(m[1], { count: 1 }) === m[1]) missing.push(`${path.basename(f)}: ${m[1]}`);
       }
     }
     expect(missing).toEqual([]);

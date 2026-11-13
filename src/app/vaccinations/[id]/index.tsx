@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,12 +7,13 @@ import { Button } from '@/components/Button';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FormError } from '@/components/FormError';
 import { NotFound } from '@/components/NotFound';
+import { RemindersSection } from '@/components/RemindersSection';
 import { SavedProofPhotos } from '@/components/SavedProofPhotos';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useGuardedAction } from '@/components/useGuardedAction';
 import { statusLabel } from '@/components/vaccinationLabels';
 import { useVaccinationDetail } from '@/data/useVaccinations';
-import { deleteVaccination } from '@/data/vaccinations';
+import { deleteVaccination, updateVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
 import { formatBrDate } from '@/domain/dateInput';
 import { todayLocal } from '@/domain/dates';
@@ -22,17 +23,24 @@ import { useTheme } from '@/theme';
 
 export default function VaccinationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { detail, loaded } = useVaccinationDetail(id);
+  const { detail, reminderOffsetsDays, loaded } = useVaccinationDetail(id);
   const { colors, spacing, radius, typography } = useTheme();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const removedFiles = useRef<string[]>([]);
+  // The switch state a write was already sent from: a second tap before the screen shows the result is the same tap.
+  // It only lives while the screen still shows that state, so it never outlasts the value it guarded.
+  const switchWrittenFrom = useRef<boolean | null>(null);
+  const shownReminders = detail?.vaccination.remindersEnabled;
+  useEffect(() => {
+    switchWrittenFrom.current = null;
+  }, [shownReminders]);
   const guard = useGuardedAction();
 
   // Also covers the moment right after the record is deleted, before navigation finishes.
   if (!detail) return loaded && !leaving ? <NotFound /> : null;
 
-  const { vaccination, pet, status, hasAttachments } = detail;
+  const { vaccination, pet, status, hasAttachments, isCurrent } = detail;
   const active = pet.status === 'active';
   const vet = [
     vaccination.vetName,
@@ -74,7 +82,41 @@ export default function VaccinationDetailScreen() {
           ))}
         </View>
         <SavedProofPhotos vaccinationId={vaccination.id} editable={active} />
-        {/* Task 8 adds the reminder dates and switch here. */}
+        <RemindersSection
+          pet={pet}
+          vaccination={vaccination}
+          isCurrent={isCurrent}
+          offsetsDays={reminderOffsetsDays}
+          onToggle={(remindersEnabled) => {
+            const from = !remindersEnabled;
+            if (switchWrittenFrom.current === from) return;
+            switchWrittenFrom.current = from;
+            // updateVaccination replaces every field, so each one is sent again with the new switch.
+            guard.run(
+              () => {
+                try {
+                  updateVaccination(db, vaccination.id, {
+                    catalogId: vaccination.catalogId,
+                    vaccineName: vaccination.vaccineName,
+                    appliedOn: vaccination.appliedOn,
+                    nextDueOn: vaccination.nextDueOn,
+                    batch: vaccination.batch,
+                    brand: vaccination.brand,
+                    vetName: vaccination.vetName,
+                    vetLicense: vaccination.vetLicense,
+                    clinic: vaccination.clinic,
+                    notes: vaccination.notes,
+                    remindersEnabled,
+                  });
+                } catch (error) {
+                  switchWrittenFrom.current = null;
+                  throw error;
+                }
+              },
+              { unlockOnSuccess: true },
+            );
+          }}
+        />
         <FormError message={guard.error} />
       </ScrollView>
       {active ? (

@@ -37,6 +37,14 @@
       "expo-localization",
       "expo-sqlite",
       [
+        "expo-notifications",
+        {
+          "color": "#5B4BC4",
+          "enableRemoteNotifications": false,
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "cameraPermission": "A câmera é usada só para fotografar o comprovante de vacinação e a foto do pet. As fotos ficam guardadas no seu aparelho.",

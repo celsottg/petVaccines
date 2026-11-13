@@ -13,6 +13,7 @@ import { addDays, todayLocal } from '@/domain/dates';
 import { formatBrDate } from '@/domain/dateInput';
 import { deleteFiles } from '@/services/files';
 import { preparePhoto } from '@/services/photos';
+import { ensureNotificationPermission } from '@/services/reminders';
 
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
 jest.mock('@/services/files', () => ({
@@ -21,6 +22,10 @@ jest.mock('@/services/files', () => ({
   deleteFiles: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/services/photos', () => ({ preparePhoto: jest.fn() }));
+jest.mock('@/services/reminders', () => ({
+  ensureNotificationPermission: jest.fn().mockResolvedValue(true),
+  getNotificationPermission: jest.fn().mockResolvedValue('granted'),
+}));
 
 let photoSeq = 0;
 const prepared = () => {
@@ -375,6 +380,53 @@ describe('Nova vacina screen', () => {
 
       expect(screen.getByText('Data inválida. Use o formato DD/MM/AAAA.')).toBeOnTheScreen();
       expect(stored()).toEqual([]);
+    });
+  });
+
+  describe('notification permission', () => {
+    const fill = async (nextDueOn?: string) => {
+      const pet = newPet(db);
+      await renderForm({ petId: pet.id });
+      await fireEvent.changeText(screen.getByLabelText('Vacina'), 'Leptospirose');
+      await fireEvent.changeText(applied(), '12112026');
+      if (nextDueOn) await fireEvent.changeText(nextDue(), nextDueOn);
+      return pet;
+    };
+
+    it('is requested once, after saving a record that has a next dose', async () => {
+      const pet = await fill('12112027');
+      expect(ensureNotificationPermission).not.toHaveBeenCalled();
+
+      await save();
+
+      expect(ensureNotificationPermission).toHaveBeenCalledTimes(1);
+      expect(screen).toHavePathname(`/pets/${pet.id}`);
+    });
+
+    it('is not requested for a record without a next dose', async () => {
+      await fill();
+      await save();
+      expect(ensureNotificationPermission).not.toHaveBeenCalled();
+    });
+
+    it('is not requested when the write fails', async () => {
+      await fill('12112027');
+      const failing = jest.spyOn(db, 'transaction').mockImplementation(() => {
+        throw new Error('disk full');
+      });
+      await save();
+      failing.mockRestore();
+      expect(ensureNotificationPermission).not.toHaveBeenCalled();
+    });
+
+    it('never blocks the save or the navigation, even if the request misbehaves', async () => {
+      jest.mocked(ensureNotificationPermission).mockReturnValueOnce(new Promise(() => {}));
+      const pet = await fill('12112027');
+
+      await save();
+
+      expect(stored()).toHaveLength(1);
+      expect(screen).toHavePathname(`/pets/${pet.id}`);
     });
   });
 
