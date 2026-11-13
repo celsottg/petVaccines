@@ -367,6 +367,33 @@
       "bodyNever_one": "Você registrou {{count}} vacina. Ela só existe neste aparelho.",
       "bodyNever_other": "Você registrou {{count}} vacinas. Elas só existem neste aparelho.",
       "action": "Fazer backup agora"
+    },
+    "import": {
+      "title": "Restaurar",
+      "run": "Importar backup de um arquivo",
+      "reading": "Lendo o arquivo…",
+      "restoring": "Restaurando…",
+      "hint": "Use ao trocar de celular. Antes de importar, o app mostra o que o arquivo contém e pede confirmação.",
+      "confirmTitle": "Restaurar este backup?",
+      "summary": "Backup de {{date}}, feito pelo app na versão {{version}}.\nContém {{pets}}, {{vaccinations}} e {{photos}}.",
+      "missing_one": "{{count}} foto citada no backup não está no arquivo e ficará de fora.",
+      "missing_other": "{{count}} fotos citadas no backup não estão no arquivo e ficarão de fora.",
+      "replaceWarning": "Tudo o que está neste aparelho agora ({{pets}} e {{vaccinations}}) será substituído pelo conteúdo do backup e não poderá ser recuperado.",
+      "emptyDevice": "Este aparelho ainda não tem dados. O conteúdo do backup será restaurado aqui.",
+      "confirmReplace": "Substituir tudo",
+      "confirmRestore": "Restaurar",
+      "cancel": "Cancelar",
+      "doneTitle": "Backup restaurado",
+      "done": "Seus pets, vacinas e fotos foram restaurados.",
+      "failed": "Não foi possível restaurar o backup. Nada foi alterado neste aparelho.",
+      "errors": {
+        "NOT_A_BACKUP": "Este arquivo não é um backup do Vacinas do Pet. Escolha outro arquivo.",
+        "INVALID_JSON": "Não foi possível ler este backup: o conteúdo está danificado. Escolha outro arquivo.",
+        "NEWER_VERSION": "Este backup foi feito por uma versão mais nova do app. Atualize o Vacinas do Pet e tente de novo.",
+        "INVALID_BACKUP": "Este backup está danificado ou foi alterado e não pode ser restaurado. Nada foi alterado neste aparelho.",
+        "UNSAFE_ENTRY": "Este arquivo tem itens que um backup do app não tem, então não foi aberto. Nada foi alterado neste aparelho.",
+        "READ_FAILED": "Não foi possível ler o arquivo. Tente de novo ou escolha outro."
+      }
     }
   }
 }

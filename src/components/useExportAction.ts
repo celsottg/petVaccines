@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
-
 import { SHARING_UNAVAILABLE } from '@/services/sharingError';
+
+import { useBusyAction } from './useBusyAction';
 
 interface ExportMessages {
   failed: string;
@@ -8,33 +8,12 @@ interface ExportMessages {
 }
 
 /**
- * Runs an asynchronous export that ends in the share sheet. Unlike
- * `useGuardedAction` it exposes `exporting` for the button; taps while it runs are
- * ignored, and a failure becomes a message (a different one when sharing is
- * unavailable) and unlocks a retry. `result` is what the last successful run returned.
+ * Runs an asynchronous export that ends in the share sheet: `useBusyAction` with
+ * `exporting` for the button and a different message when sharing is unavailable.
  */
 export function useExportAction<T>(run: () => Promise<T>, messages: ExportMessages) {
-  const locked = useRef(false);
-  const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState<string>();
-  const [result, setResult] = useState<T>();
-
-  async function start() {
-    if (locked.current) return;
-    locked.current = true;
-    setExporting(true);
-    setError(undefined);
-    setResult(undefined);
-    try {
-      setResult(await run());
-    } catch (failure) {
-      const unavailable = failure instanceof Error && failure.message === SHARING_UNAVAILABLE;
-      setError(unavailable ? messages.unavailable : messages.failed);
-    } finally {
-      locked.current = false;
-      setExporting(false);
-    }
-  }
-
-  return { start, exporting, error, result };
+  const { start, busy, error, result } = useBusyAction(run, (failure) =>
+    failure instanceof Error && failure.message === SHARING_UNAVAILABLE ? messages.unavailable : messages.failed,
+  );
+  return { start, exporting: busy, error, result };
 }

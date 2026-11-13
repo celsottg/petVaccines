@@ -65,3 +65,14 @@ Contribuições são muito bem-vindas, inclusive sem programar: sugerir vacinas 
 ## Licença
 
 [GPLv3](LICENSE).
+
+### Como restaurar um backup
+
+Em **Backup > Restaurar > Importar backup de um arquivo**, escolha o `.zip`. O app extrai o arquivo para uma pasta temporária, valida o conteúdo e mostra um resumo (data do backup, pets, vacinas, fotos, versão do app) antes de mudar qualquer coisa.
+
+- **Substitui tudo.** Ao confirmar, os pets, vacinas, fotos e preferências que estão no aparelho são trocados pelos do backup, e o que havia antes não pode ser recuperado. Não existe mesclagem. Com o aparelho vazio, o texto é neutro.
+- **Atômico.** O banco é trocado em uma única transação. Se algo falhar, os dados anteriores continuam como estavam.
+- **Fotos ausentes.** Foto citada no `data.json` e ausente no `.zip` não impede a restauração: o resto é importado e o app avisa quantas ficaram de fora.
+- **Backup de uma versão mais nova do app.** O app avisa para atualizá-lo e não importa nada. Backups de versões anteriores continuam aceitos.
+- **Arquivo inválido ou adulterado.** Um `.zip` que não é um backup do app, com JSON inválido, com conteúdo fora do formato ou com entradas inesperadas é recusado, sem alterar os dados.
+- Depois de restaurar, o aviso de backup desatualizado não aparece (os dados são iguais ao backup) e os lembretes são reagendados.

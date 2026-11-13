@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { FormError } from '@/components/FormError';
 import { FormField } from '@/components/FormField';
+import { RestoreSection } from '@/components/RestoreSection';
 import { useExportAction } from '@/components/useExportAction';
 import { useGuardedAction } from '@/components/useGuardedAction';
 import { setSetting } from '@/data/settings';
@@ -92,6 +93,8 @@ function BackupContent({ status }: { status: BackupStatus }) {
             {t('backup.missingPhotos', { count: missing })}
           </Text>
         ) : null}
+
+        <RestoreSection device={status.counts} />
 
         <Text accessibilityRole="header" style={[typography.subtitle, { color: colors.text }]}>
           {t('backup.warningTitle')}

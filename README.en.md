@@ -67,3 +67,14 @@ Contributions are very welcome, including non-code ones: suggesting vaccines for
 ## License
 
 [GPLv3](LICENSE).
+
+### How to restore a backup
+
+Go to **Backup > Restaurar (Restore) > Importar backup de um arquivo (Import a backup file)** and choose the `.zip`. The app extracts it into a temporary folder, validates it and shows a summary (backup date, pets, vaccinations, photos, app version) before changing anything.
+
+- **It replaces everything.** On confirmation, the pets, vaccinations, photos and preferences on the device are swapped for the backup's, and what was there before cannot be recovered. There is no merging. On an empty device the wording is neutral.
+- **Atomic.** The database is replaced in a single transaction. If anything fails, the previous data stays as it was.
+- **Missing photos.** A photo named in `data.json` but absent from the `.zip` does not block the restore: the rest is imported and the app says how many were left out.
+- **Backup from a newer app version.** The app asks you to update it and imports nothing. Backups from earlier versions are still accepted.
+- **Invalid or tampered file.** A `.zip` that is not an app backup, has invalid JSON, content outside the format or unexpected entries is refused without touching the data.
+- After a restore the stale-backup warning does not show (the data equals the backup) and reminders are rescheduled.

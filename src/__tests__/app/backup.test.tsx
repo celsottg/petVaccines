@@ -85,13 +85,6 @@ describe('Backup screen', () => {
     expect(screen.getByText(/hoje/)).toBeOnTheScreen();
   });
 
-  it('does not offer to import a backup yet', async () => {
-    await renderBackup();
-
-    expect(screen.queryByText(/Importar/)).toBeNull();
-    expect(screen.queryByText('Restaurar')).toBeNull();
-  });
-
   it('exports once even when the button is tapped twice, shows it is busy and then confirms', async () => {
     let finish!: (value: { missingPhotos: number }) => void;
     exportMock.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
