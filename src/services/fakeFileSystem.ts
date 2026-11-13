@@ -133,6 +133,7 @@ export const fakeFs = {
     dirs.add(uri);
   },
   has: (uri: string) => files.has(uri),
+  size: (uri: string) => files.get(uri)?.size,
   /** URIs of every directory under a directory. */
   dirsUnder: (dirUri: string) => [...dirs].filter((uri) => uri.startsWith(`${dirUri}/`)).sort(),
   hasDir: (uri: string) => dirs.has(uri),

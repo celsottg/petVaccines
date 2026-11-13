@@ -1,5 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
+import { randomUUID } from 'expo-crypto';
 import { unzip } from 'react-native-zip-archive';
 
 import { db } from '@/db/client';
@@ -7,11 +8,13 @@ import { db } from '@/db/client';
 import { PETS_DIR, PHOTOS_DIR, removeOrphanFiles } from '../files';
 import { replaceAllData } from './replaceAllData';
 import { backupSchema, type BackupData } from './schema';
-import { BackupError, checkEntries, checkFiles, parseBackupJson } from './validate';
+import { BackupError, checkEntries, checkFiles, isJunkEntry, parseBackupJson } from './validate';
 
 export { BackupError, type BackupErrorCode } from './validate';
 
-const STAGING_NAME = 'petvaccines-import-staging';
+// Every read extracts into its own new folder under this one parent, so a leftover can never mix with a new extraction.
+const STAGING_PARENT = 'petvaccines-import';
+const TEMP_SUFFIX = '.part';
 // A real data.json is a few hundred KB; this only stops a hostile file from exhausting memory while parsing.
 export const MAX_DATA_JSON_BYTES = 20 * 1024 * 1024;
 
@@ -38,7 +41,6 @@ function removeQuietly(entry: File | Directory) {
   }
 }
 
-const stagingFolder = () => new Directory(Paths.cache, STAGING_NAME);
 
 function isZipError(failure: unknown, ...codes: string[]) {
   const code = (failure as { code?: unknown } | null)?.code;
@@ -50,6 +52,7 @@ function walk(staging: Directory): { files: string[]; directories: string[] } {
   const files: string[] = [];
   const directories: string[] = [];
   for (const entry of staging.list()) {
+    if (isJunkEntry(entry.name)) continue; // never looked into, never copied
     if (entry instanceof File) {
       files.push(entry.name);
       continue;
@@ -57,6 +60,7 @@ function walk(staging: Directory): { files: string[]; directories: string[] } {
     directories.push(entry.name);
     if (entry.name !== PHOTOS_DIR && entry.name !== PETS_DIR) continue;
     for (const child of entry.list()) {
+      if (isJunkEntry(child.name)) continue;
       if (child instanceof File) files.push(`${entry.name}/${child.name}`);
       else directories.push(`${entry.name}/${child.name}`);
     }
@@ -73,9 +77,10 @@ function walk(staging: Directory): { files: string[]; directories: string[] } {
  * tree is then checked against the allow-list anyway.
  */
 export async function readBackup(zipUri: string): Promise<BackupPreview> {
-  const staging = stagingFolder();
-  removeQuietly(staging); // left by an interrupted run
-  staging.create({ intermediates: true, idempotent: true });
+  const parent = new Directory(Paths.cache, STAGING_PARENT);
+  removeQuietly(parent); // leftovers of interrupted runs; best effort, since the folder below is new anyway
+  const staging = new Directory(parent, randomUUID());
+  staging.create({ intermediates: true });
   try {
     try {
       await unzip(zipUri, staging.uri);
@@ -86,8 +91,9 @@ export async function readBackup(zipUri: string): Promise<BackupPreview> {
     }
 
     const { files, directories } = walk(staging);
-    checkEntries(files, directories); // before reading anything
+    // No data.json: this is not a backup, whatever else the zip holds. With it, strangers are unsafe.
     if (!files.includes('data.json')) throw new BackupError('NOT_A_BACKUP');
+    checkEntries(files, directories);
     const json = new File(staging, 'data.json');
     if (json.size > MAX_DATA_JSON_BYTES) throw new BackupError('INVALID_BACKUP', { message: 'too_large', path: 'data.json' });
 
@@ -131,8 +137,8 @@ export function discardBackupPreview(preview: BackupPreview): void {
   removeQuietly(new Directory(preview.stagingDir));
 }
 
-function removeAll(files: File[]) {
-  for (const file of files) removeQuietly(file);
+function removeAll(uris: string[]) {
+  for (const uri of uris) removeQuietly(new File(uri));
 }
 
 /**
@@ -157,14 +163,20 @@ export async function applyBackup(preview: BackupPreview): Promise<void> {
     ...data.attachments.filter((a) => !missing.has(a.file)).map((a): [string, string] => [PHOTOS_DIR, a.file]),
   ];
 
-  const created: File[] = [];
+  // Each photo is copied to `<name>.part` and renamed once complete, so a final name only ever holds a
+  // whole file (an interrupted copy leaves a `.part` that the orphan sweep deletes). Only URIs are kept:
+  // a moved `File` changes its own.
+  const created: string[] = [];
   try {
     for (const folder of [PHOTOS_DIR, PETS_DIR]) new Directory(Paths.document, folder).create({ intermediates: true, idempotent: true });
     for (const [folder, name] of copies) {
       const destination = new File(new Directory(Paths.document, folder), name);
       if (destination.exists) continue;
-      created.push(destination); // recorded before copying: a copy that fails part-way leaves a partial file
-      await new File(new Directory(staging, folder), name).copy(destination);
+      const temporary = new File(new Directory(Paths.document, folder), `${name}${TEMP_SUFFIX}`);
+      removeQuietly(temporary); // a stale one from an earlier interrupted run
+      created.push(temporary.uri, destination.uri); // recorded before copying: a copy that fails part-way leaves a partial file
+      await new File(new Directory(staging, folder), name).copy(temporary);
+      temporary.move(destination);
     }
     replaceAllData(db, data, preview.missing);
   } catch (failure) {
