@@ -1,3 +1,5 @@
+import { pets } from '@/db/schema';
+
 import { addAttachment, deleteAttachment } from './attachments';
 import { archivePet, createPet, deletePet, reactivatePet, updatePet } from './pets';
 import { getSettings, setSetting, touchLastChange } from './settings';
@@ -146,6 +148,28 @@ describe('lastChangeAt on writes', () => {
     const before = getSettings(db).lastChangeAt;
     jest.setSystemTime(new Date('2026-12-01T00:00:00Z'));
     expect(() => newAttachment(db, v.id)).toThrow('ATTACHMENT_LIMIT');
+    expect(getSettings(db).lastChangeAt).toBe(before);
+  });
+});
+
+describe('transaction rollback', () => {
+  it('leaves no row and an unchanged lastChangeAt when a transaction fails after an insert', () => {
+    const db = createTestDb();
+    newPet(db);
+    const before = getSettings(db).lastChangeAt;
+    const petsBefore = db.select().from(pets).all().length;
+
+    // Same pattern as the data-layer writes: insert, then touchLastChange, all in one transaction.
+    expect(() =>
+      db.transaction((tx) => {
+        const now = new Date().toISOString();
+        tx.insert(pets).values({ id: 'rolled-back', name: 'Ghost', species: 'dog', createdAt: now, updatedAt: now }).run();
+        touchLastChange(tx);
+        throw new Error('boom');
+      }),
+    ).toThrow('boom');
+
+    expect(db.select().from(pets).all()).toHaveLength(petsBefore);
     expect(getSettings(db).lastChangeAt).toBe(before);
   });
 });
