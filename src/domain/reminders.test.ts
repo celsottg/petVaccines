@@ -145,7 +145,7 @@ describe('earliestReminderDay', () => {
     expect(earliestReminderDay(new Date(2026, 10, 12, 22, 0, 0))).toBe('2026-11-13');
   });
 
-  it('uses the local calendar date, not the UTC one (22:00 in UTC-3 is already the next day in UTC)', () => {
+  it('is based on the local clock time, in the early morning too', () => {
     expect(earliestReminderDay(new Date(2026, 10, 12, 1, 0, 0))).toBe('2026-11-12');
   });
 });

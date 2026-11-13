@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,7 +29,12 @@ export default function VaccinationDetailScreen() {
   const [leaving, setLeaving] = useState(false);
   const removedFiles = useRef<string[]>([]);
   // The switch state a write was already sent from: a second tap before the screen shows the result is the same tap.
+  // It only lives while the screen still shows that state, so it never outlasts the value it guarded.
   const switchWrittenFrom = useRef<boolean | null>(null);
+  const shownReminders = detail?.vaccination.remindersEnabled;
+  useEffect(() => {
+    switchWrittenFrom.current = null;
+  }, [shownReminders]);
   const guard = useGuardedAction();
 
   // Also covers the moment right after the record is deleted, before navigation finishes.

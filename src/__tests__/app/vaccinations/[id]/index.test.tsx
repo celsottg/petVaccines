@@ -7,7 +7,7 @@ import WalletScreen from '@/app/pets/[petId]/index';
 import VaccinationDetailScreen from '@/app/vaccinations/[id]/index';
 import { archivePet } from '@/data/pets';
 import { newAttachment, newPet } from '@/data/testHelpers';
-import { createVaccination } from '@/data/vaccinations';
+import { createVaccination, updateVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
 import { attachments, pets, settings, vaccinations } from '@/db/schema';
 import { setSetting } from '@/data/settings';
@@ -558,6 +558,55 @@ describe('Detalhe da vacina screen', () => {
 
       expect(stored()[0].remindersEnabled).toBe(true);
       expect(screen.getByText('7 dias antes')).toBeOnTheScreen();
+    });
+
+    it('stores every change when the switch is turned off, on and off again, each after the screen updated', async () => {
+      const { created } = withDose(20);
+      await renderDetail(created.id);
+      const transaction = jest.spyOn(db, 'transaction');
+
+      await fireEvent.press(reminderSwitch());
+      await fireEvent.press(reminderSwitch());
+      await fireEvent.press(reminderSwitch());
+
+      expect(transaction).toHaveBeenCalledTimes(3);
+      expect(stored()[0].remindersEnabled).toBe(false);
+      expect(reminderSwitch()).not.toBeChecked();
+    });
+
+    it('does not get stuck when the stored value returns to its old state by another path', async () => {
+      const { created } = withDose(20);
+      await renderDetail(created.id);
+      await fireEvent.press(reminderSwitch());
+      expect(stored()[0].remindersEnabled).toBe(false);
+
+      // Another write (such as a backup import) turns it back on while this screen stays open.
+      await act(async () => {
+        const { id, petId, createdAt, updatedAt, ...fields } = stored()[0];
+        void [id, petId, createdAt, updatedAt];
+        updateVaccination(db, created.id, { ...fields, remindersEnabled: true });
+      });
+      expect(reminderSwitch()).toBeChecked();
+
+      await fireEvent.press(reminderSwitch());
+
+      expect(stored()[0].remindersEnabled).toBe(false);
+      expect(reminderSwitch()).not.toBeChecked();
+    });
+
+    it('accepts the next tap after a failed write', async () => {
+      const { created } = withDose(20);
+      await renderDetail(created.id);
+      const failing = jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
+        throw new Error('disk full');
+      });
+
+      await fireEvent.press(reminderSwitch());
+      expect(stored()[0].remindersEnabled).toBe(true);
+      failing.mockRestore();
+      await fireEvent.press(reminderSwitch());
+
+      expect(stored()[0].remindersEnabled).toBe(false);
     });
 
     it('shows a message and keeps the switch when the write fails, then works on retry', async () => {
