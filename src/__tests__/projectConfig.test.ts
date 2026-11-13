@@ -60,7 +60,14 @@ describe('app.json local reminders (Task 8)', () => {
   });
 
   it('declares no push services, google-services file or EAS push credentials', () => {
-    expect(JSON.stringify(expo)).not.toMatch(/googleServicesFile|GoogleService-Info|projectId|pushNotification/i);
+    // The EAS project id (checked below) only links builds to the EAS project; it grants no push access.
+    const { extra, ...rest } = expo;
+    expect(JSON.stringify(rest)).not.toMatch(/googleServicesFile|GoogleService-Info|projectId|pushNotification/i);
+    expect(JSON.stringify(extra)).not.toMatch(/googleServicesFile|GoogleService-Info|pushNotification/i);
+  });
+
+  it('carries only the EAS project id under extra', () => {
+    expect(expo.extra).toEqual({ eas: { projectId: '9385426c-d89c-4bf1-98ec-e1e618aa3a4f' } });
   });
 });
 
