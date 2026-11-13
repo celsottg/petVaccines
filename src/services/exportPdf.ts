@@ -10,10 +10,11 @@ import { todayLocal } from '@/domain/dates';
 import { photoUri } from './files';
 import { buildCardHtml, pdfFileName, type CardPhoto } from './pdf';
 import { cardLabels } from './pdfLabels';
+import { SHARING_UNAVAILABLE } from './sharingError';
 
 /** Error messages the screen tells apart from a generic failure. */
 export const PET_NOT_FOUND = 'PET_NOT_FOUND';
-export const SHARING_UNAVAILABLE = 'SHARING_UNAVAILABLE';
+export { SHARING_UNAVAILABLE };
 
 // A4 at 72 ppi, the unit `expo-print` uses; the default is US Letter.
 const PAGE_WIDTH = 595;

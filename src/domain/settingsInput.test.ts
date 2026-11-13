@@ -1,4 +1,4 @@
-import { validateSettingsInput } from './settingsInput';
+import { parseBackupWarningDays, validateSettingsInput } from './settingsInput';
 
 describe('validateSettingsInput', () => {
   it('accepts valid values and sorts the offsets from the farthest to the day itself', () => {
@@ -43,5 +43,14 @@ describe('validateSettingsInput', () => {
   it('reports every problem at once', () => {
     const result = validateSettingsInput({ dueSoonDays: '0', offsets: ['x'] });
     expect(result).toMatchObject({ ok: false, errors: { dueSoonDays: 'dueSoonInvalid', offsets: ['offsetInvalid'] } });
+  });
+});
+
+describe('parseBackupWarningDays', () => {
+  it.each([['14', 14], [' 1 ', 1], ['365', 365]])('accepts %s', (text, expected) => {
+    expect(parseBackupWarningDays(text)).toBe(expected);
+  });
+  it.each(['', '0', '366', '1.5', '-3', 'abc', '1e2'])('rejects %j', (text) => {
+    expect(parseBackupWarningDays(text)).toBeUndefined();
   });
 });

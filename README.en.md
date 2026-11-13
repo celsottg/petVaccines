@@ -48,6 +48,18 @@ The app uses native libraries that are not in Expo Go, so it runs in a [developm
 | `npm run typecheck` | type check (TypeScript) |
 | `npx expo start` | development server |
 
+## Backup file
+
+A backup is a `petvaccines-backup-YYYY-MM-DD.zip` file built on the device (nothing goes through a server). It contains:
+
+- `data.json`: plain, readable JSON you can open in any editor. It has `format` (`petvaccines-backup`), `schemaVersion`, `appVersion`, `exportedAt`, the lists `pets`, `vaccinations` and `attachments`, and the `settings` object (only `backup_warning_days`, `due_soon_days` and `reminder_offsets_days`). Each list row uses the database column names in snake_case (`pet_id`, `applied_on`, `next_due_on`...), and optional fields are present with `null`. Archived pets are included.
+- `photos/<file>`: proof photos; the name is the `file` value of the row in `attachments` (`<uuid>.jpg`).
+- `pets/<file>`: pet profile photos; the name is the pet's `photo_file` value (`<uuid>.jpg`).
+
+Integrity rules, checked by the schema itself: every vaccination points to a pet in the file, every attachment to a vaccination in the file, ids are unique, file names are not repeated, a vaccination has at most 3 attachments and an active pet carries no archive data.
+
+The format is defined by a single Zod schema in `src/services/backup/schema.ts`. Versioning rule: `schemaVersion` only goes up when the format changes, and a newer app must keep reading backups from older versions, converting them on read.
+
 ## Contributing
 
 Contributions are very welcome, including non-code ones: suggesting vaccines for the catalog, reviewing texts and translating. Read the [contributing guide](CONTRIBUTING.en.md) and the [code of conduct](CODE_OF_CONDUCT.md).

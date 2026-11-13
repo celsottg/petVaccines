@@ -2,6 +2,7 @@ import { router, Stack } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BackupBanner } from '@/components/BackupBanner';
 import { Button } from '@/components/Button';
 import { PetCard } from '@/components/PetCard';
 import { badgeLabel, petDetails } from '@/components/petLabels';
@@ -24,6 +25,7 @@ export default function PetsScreen() {
         <Text accessibilityRole="header" style={[typography.title, { color: colors.text }]}>
           {t('pets.title')}
         </Text>
+        <BackupBanner />
         {loaded && summaries.length === 0 ? (
           <View style={[styles.empty, { gap: spacing.sm, paddingVertical: spacing.xl }]}>
             <Text style={[typography.subtitle, styles.center, { color: colors.text }]}>{t('pets.empty.title')}</Text>
@@ -52,6 +54,12 @@ export default function PetsScreen() {
             </Text>
           </Pressable>
         ) : null}
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push('/backup')}
+          style={[styles.link, { paddingVertical: spacing.sm }]}>
+          <Text style={[typography.label, { color: colors.primary }]}>{t('backup.link')}</Text>
+        </Pressable>
         <Pressable
           accessibilityRole="link"
           onPress={() => router.push('/settings')}

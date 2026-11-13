@@ -51,7 +51,8 @@
           "photosPermission": "As fotos da galeria são usadas só para anexar o comprovante de vacinação e a foto do pet. Elas ficam guardadas no seu aparelho.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "react-native-zip-archive"
     ],
     "experiments": {
       "typedRoutes": true,
