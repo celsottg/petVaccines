@@ -171,7 +171,19 @@ Excluir um registro apaga também os arquivos correspondentes. A exclusão do ba
 
 ### Registro vigente
 
-Um pet pode ter várias aplicações da mesma vacina. Duas aplicações são "a mesma vacina" quando têm o mesmo `catalog_id`; para nome livre, quando o `vaccine_name` é igual ignorando maiúsculas, acentos e espaços nas pontas. O **registro vigente** de cada vacina é o de `applied_on` mais recente. Os demais são "aplicações anteriores". **[escolha]**
+Um pet pode ter várias aplicações da mesma vacina. O **registro vigente** de cada vacina é o de `applied_on` mais recente. Os demais são "aplicações anteriores". **[escolha]**
+
+Duas aplicações são "a mesma vacina" quando têm a mesma chave, calculada nesta ordem: **[decisão, revisada em 2026-11-13]**
+
+1. Se o registro tem `catalog_id`, a chave é esse item do catálogo.
+2. Se não tem, e o nome normalizado é igual ao nome normalizado de um item do catálogo da espécie do pet, a chave é esse item. Assim, um nome livre "Antirrábica" e a "Antirrábica" escolhida do catálogo são a mesma vacina, inclusive quando o item entrou no catálogo depois do registro ou quando o registro veio de um backup antigo. Nenhum dado é migrado; a equivalência é calculada na leitura.
+3. Caso contrário, a chave é o nome normalizado.
+
+**Nome normalizado:** sem acentos, em minúsculas, sem espaços nas pontas e com espaços internos repetidos reduzidos a um só. "Gripe  Canina" e "gripe canina" são a mesma vacina; "gripecanina" não é.
+
+Além disso, o formulário de vacina preenche o `catalog_id` sozinho quando o nome digitado corresponde a um item do catálogo da espécie, o que também ativa a sugestão de próxima dose.
+
+**Limitação conhecida:** nomes diferentes para a mesma vacina (por exemplo, "V10" digitado e "Polivalente V8/V10" no catálogo) continuam separados. Um campo de apelidos no catálogo fica para depois do MVP.
 
 ### Status
 

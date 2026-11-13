@@ -30,7 +30,7 @@
 Condições que a spec implica, mas que nenhum critério dela exercita. Cada uma tem um teste na task indicada.
 
 1. **Virada do dia no fuso do Brasil.** Às 22:00 em UTC-3, a data em UTC já é o dia seguinte. O tutor espera que "hoje" seja a data do aparelho, senão uma vacina aparece vencida um dia antes. Teste na Task 2.
-2. **Nome livre digitado de formas diferentes.** "Antirrabica", "antirrábica " e "ANTIRRÁBICA" devem ser a mesma vacina; caso contrário o reforço não substitui a aplicação anterior e o lembrete antigo continua ativo. Teste na Task 2.
+2. **Nome livre digitado de formas diferentes.** "Antirrabica", "antirrábica " e "ANTIRRÁBICA" devem ser a mesma vacina, assim como "Gripe  Canina" com dois espaços e um nome livre igual a um item do catálogo; caso contrário o reforço não substitui a aplicação anterior e o lembrete antigo continua ativo. Testes nas Tasks 2, 2.1 e 6.
 3. **Arquivo de backup malicioso ou corrompido.** Um `data.json` com `file` igual a `../../algo` ou um zip com entradas fora de `photos/` e `pets/` não pode gravar fora das pastas do app. Teste na Task 11.
 4. **App encerrado no meio da importação.** O tutor espera encontrar os dados antigos inteiros ou os novos inteiros, nunca uma mistura. Teste na Task 11.
 5. **Lembrete cujo horário já passou.** Uma vacina que vence hoje, registrada às 15:00, não deve disparar a notificação das 09:00 na hora, nem derrubar o agendamento das demais. Notificações negadas ou revogadas não podem causar erro. Testes na Task 8.
@@ -141,6 +141,50 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 - [x] **Step 4:** Rodar `npx jest src/domain`. Esperado: PASS.
 - [x] **Step 5:** Commit: `feat(domain): add date, status and current-record rules`.
 
+### Task 2.1: Chave de vacina com catálogo e espaços internos
+
+Revisão da regra de "mesma vacina" (seção 6 da spec, revisada em 2026-11-13). Altera código já entregue na Task 2.
+
+**Files:**
+- Modify: `src/domain/current.ts`, `src/domain/current.test.ts`, `src/domain/domain.integration.test.ts`, `CLAUDE.md`
+
+**Interfaces:**
+- Produces (substitui as assinaturas de `vaccineKey` e `splitCurrent` da Task 2):
+  - `normalizeVaccineName(name: string): string`
+  - `type CatalogMatcher = (normalizedName: string) => string | undefined` (devolve o `id` do item do catálogo)
+  - `vaccineKey(v: { catalogId: string | null; vaccineName: string }, matchCatalog?: CatalogMatcher): string`
+  - `splitCurrent<T>(list: T[], matchCatalog?: CatalogMatcher): { current: T[]; previous: T[] }`, com a mesma restrição de `T` da Task 2. A lista é de um único pet, então o `matchCatalog` é o da espécie dele.
+
+- [ ] **Step 1: Escrever os testes que falham**
+
+```ts
+const match: CatalogMatcher = (n) => (n === 'antirrabica' ? 'br-dog-rabies' : undefined);
+
+expect(normalizeVaccineName('  Gripe   Canina ')).toBe('gripe canina');
+expect(normalizeVaccineName('ANTIRRÁBICA')).toBe('antirrabica');
+expect(normalizeVaccineName('gripecanina')).not.toBe(normalizeVaccineName('gripe canina'));
+
+// free name equal to a catalog item resolves to that item
+expect(vaccineKey({ catalogId: null, vaccineName: 'Antirrábica' }, match))
+  .toBe(vaccineKey({ catalogId: 'br-dog-rabies', vaccineName: 'Raiva' }, match));
+// no matcher, or no match: falls back to the normalized name
+expect(vaccineKey({ catalogId: null, vaccineName: 'Antirrábica' })).toBe('name:antirrabica');
+expect(vaccineKey({ catalogId: null, vaccineName: 'Leptospirose' }, match)).toBe('name:leptospirose');
+// inner spaces collapse
+expect(vaccineKey({ catalogId: null, vaccineName: 'Gripe  Canina' }))
+  .toBe(vaccineKey({ catalogId: null, vaccineName: 'gripe canina' }));
+
+// splitCurrent with match: free-name "Antirrábica" applied 2025-12-02 and
+// catalog 'br-dog-rabies' applied 2026-12-01 → current = [2026], previous = [2025]
+```
+
+- [ ] **Step 2:** Inverter o teste existente em `current.test.ts` que garante que nome livre e item do catálogo de mesmo nome são vacinas diferentes: ele passa a valer só quando não há `matchCatalog`.
+- [ ] **Step 3:** Rodar `npx jest src/domain`. Esperado: FAIL.
+- [ ] **Step 4:** Implementar. `normalizeVaccineName` faz NFD, remove diacríticos (`/[̀-ͯ]/g`), troca `/\s+/g` por um espaço, `trim` e minúsculas. `vaccineKey` segue a ordem da spec: `catalogId`, depois `matchCatalog`, depois `name:`. O domínio não importa `src/catalog/`; o catálogo entra só pelo parâmetro.
+- [ ] **Step 5:** Rodar `npx jest src/domain`, `npm run typecheck` e `npm run lint`. Esperado: PASS.
+- [ ] **Step 6:** Atualizar o parágrafo "Same vaccine" do `CLAUDE.md` com a nova regra.
+- [ ] **Step 7:** Commit: `feat(domain): match free vaccine names to the catalog and collapse inner spaces`.
+
 ### Task 3: Banco, migrações e camada de dados
 
 **Files:**
@@ -181,9 +225,10 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 - Create: `src/catalog/br.json`, `src/catalog/index.ts`, `src/catalog/index.test.ts`
 
 **Interfaces:**
-- Produces: `type CatalogVaccine = { id: string; name: string; species: 'dog' | 'cat'; boosterIntervalDays: number }`; `listCatalog(species: 'dog' | 'cat'): CatalogVaccine[]` (ordem alfabética); `findCatalogVaccine(id: string): CatalogVaccine | undefined`.
+- Produces: `type CatalogVaccine = { id: string; name: string; species: 'dog' | 'cat'; boosterIntervalDays: number }`; `listCatalog(species: 'dog' | 'cat'): CatalogVaccine[]` (ordem alfabética); `findCatalogVaccine(id: string): CatalogVaccine | undefined`; `catalogMatcher(species: 'dog' | 'cat'): CatalogMatcher` (Task 2.1), que compara pelo `normalizeVaccineName` do nome do item.
+- Consumes: `normalizeVaccineName`, `CatalogMatcher` (Task 2.1).
 
-- [ ] **Step 1:** Escrever o teste: todo item de `br.json` passa no esquema Zod (`id` no formato `br-(dog|cat)-[a-z0-9-]+`, `boosterIntervalDays` inteiro positivo); não há `id` repetido; `listCatalog('cat')` só devolve gatos; `findCatalogVaccine('br-dog-rabies')?.name` é `'Antirrábica'`.
+- [ ] **Step 1:** Escrever o teste: `catalogMatcher('dog')('antirrabica')` é `'br-dog-rabies'`; `catalogMatcher('cat')('antirrabica')` é o id do item de gatos, nunca o de cães; `catalogMatcher('dog')('inexistente')` é `undefined`; não há dois itens da mesma espécie com o mesmo nome normalizado; todo item de `br.json` passa no esquema Zod (`id` no formato `br-(dog|cat)-[a-z0-9-]+`, `boosterIntervalDays` inteiro positivo); não há `id` repetido; `listCatalog('cat')` só devolve gatos; `findCatalogVaccine('br-dog-rabies')?.name` é `'Antirrábica'`.
 - [ ] **Step 2:** Rodar `npx jest src/catalog`. Esperado: FAIL.
 - [ ] **Step 3:** Criar `br.json` com a proposta de partida da spec: para cães, polivalente V8/V10, antirrábica, gripe canina, giárdia e leishmaniose; para gatos, polivalente V3/V4/V5 e antirrábica. Todos com `boosterIntervalDays: 365`. Marcar no `README` que o conteúdo aguarda revisão veterinária. Implementar `index.ts`.
 - [ ] **Step 4:** Rodar `npx jest src/catalog`. Esperado: PASS.
@@ -197,7 +242,7 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 - Modify: `src/app/index.tsx`, `src/i18n/pt-BR.json`
 
 **Interfaces:**
-- Consumes: `data/pets.ts`, `getStatus`, `worstStatus`, `splitCurrent`, `getSettings`.
+- Consumes: `data/pets.ts`, `getStatus`, `worstStatus`, `splitCurrent` (sempre com `catalogMatcher(pet.species)`), `getSettings`.
 - Produces: `petInputSchema(today: IsoDate)` (Zod); `<StatusBadge status={VaccinationStatus | 'none' | 'no_receipt'} label={string} />`; `<ConfirmDialog />`.
 
 - [ ] **Step 1:** Testes de `petInputSchema('2026-11-12')`: aceita `{ name: 'Thor', species: 'dog' }` sem os demais campos; rejeita `name` vazio ou só com espaços; rejeita `species: 'bird'`; rejeita `birthOn: '2026-11-13'`; aceita `birthOn: '2026-11-12'`.
@@ -216,14 +261,14 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 - Modify: `src/domain/validation.ts`, `validation.test.ts`, `src/i18n/pt-BR.json`
 
 **Interfaces:**
-- Consumes: `data/vaccinations.ts`, `listCatalog`, `suggestNextDue`, `splitCurrent`, `getStatus`.
+- Consumes: `data/vaccinations.ts`, `listCatalog`, `catalogMatcher`, `normalizeVaccineName`, `suggestNextDue`, `splitCurrent` (sempre com `catalogMatcher(pet.species)`), `getStatus`.
 - Produces: `vaccinationInputSchema(ctx: { today: IsoDate; birthOn: IsoDate | null })`.
 
 - [ ] **Step 1:** Testes do esquema, com `today = '2026-11-12'` e `birthOn = '2023-08-10'`: aceita só `vaccineName` e `appliedOn`; rejeita `appliedOn: '2026-11-13'` (futura); rejeita `appliedOn: '2023-08-09'` (antes do nascimento); rejeita `nextDueOn` igual ou anterior a `appliedOn`; com `birthOn: null`, não aplica a regra do nascimento.
 - [ ] **Step 2:** Rodar. Esperado: FAIL. Implementar. Esperado: PASS.
-- [ ] **Step 3:** Testes de tela: a carteira mostra os registros vigentes acima e os demais sob "Aplicações anteriores"; o filtro "Vencidas" mostra só os vigentes vencidos; a carteira de um pet com baixa não mostra selos de vencimento nem "Nova vacina"; no formulário, escolher "Antirrábica" do catálogo com aplicação em `2026-11-12` preenche a próxima dose com `2027-11-12`; um registro sem anexos mostra o selo "Sem comprovante".
+- [ ] **Step 3:** Testes de tela: a carteira mostra os registros vigentes acima e os demais sob "Aplicações anteriores"; o filtro "Vencidas" mostra só os vigentes vencidos; a carteira de um pet com baixa não mostra selos de vencimento nem "Nova vacina"; no formulário, escolher "Antirrábica" do catálogo com aplicação em `2026-11-12` preenche a próxima dose com `2027-11-12`; um registro sem anexos mostra o selo "Sem comprovante"; digitar " antirrabica " como nome livre para um cão salva o registro com `catalogId: 'br-dog-rabies'` e preenche a sugestão de próxima dose; digitar "Leptospirose" (fora do catálogo) salva com `catalogId: null`; uma "Antirrábica" antiga de nome livre e sem `catalogId` desce para "Aplicações anteriores" quando o reforço é registrado pelo catálogo.
 - [ ] **Step 4:** Rodar. Esperado: FAIL.
-- [ ] **Step 5:** Implementar as telas 4, 6 e 7. O campo de vacina combina a lista do catálogo da espécie do pet com texto livre; ao digitar um nome livre, `catalogId` fica nulo. "Registrar reforço" navega para `vaccinations/new` com `fromVaccinationId`, que pré-preenche a vacina e a data de hoje. O bloco de comprovante da tela 6 e os lembretes da tela 7 ficam como espaços reservados até as Tasks 7 e 8.
+- [ ] **Step 5:** Implementar as telas 4, 6 e 7. O campo de vacina combina a lista do catálogo da espécie do pet com texto livre. Ao salvar um nome digitado, o formulário consulta `catalogMatcher(pet.species)(normalizeVaccineName(nome))`: se houver correspondência, grava esse `catalogId` e o nome do catálogo; se não houver, `catalogId` fica nulo. "Registrar reforço" navega para `vaccinations/new` com `fromVaccinationId`, que pré-preenche a vacina e a data de hoje. O bloco de comprovante da tela 6 e os lembretes da tela 7 ficam como espaços reservados até as Tasks 7 e 8.
 - [ ] **Step 6:** Rodar os três comandos de verificação. Esperado: PASS.
 - [ ] **Step 7:** No aparelho: registrar uma vacina, registrar um reforço e ver a anterior descer para "Aplicações anteriores".
 - [ ] **Step 8:** Commit: `feat(vaccinations): add wallet, form and detail screens`.
@@ -258,7 +303,7 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 - Consumes: `splitCurrent`, `addDays`, `getSettings`, `setSetting`.
 - Produces:
   - `type PlannedReminder = { vaccinationId: string; petName: string; vaccineName: string; fireOn: IsoDate; daysBefore: number }`
-  - `planReminders(input: { pets: Pet[]; vaccinations: Vaccination[]; offsetsDays: number[]; today: IsoDate; limit: number }): PlannedReminder[]`
+  - `planReminders(input: { pets: Pet[]; vaccinations: Vaccination[]; offsetsDays: number[]; today: IsoDate; limit: number; matcherFor: (species: 'dog' | 'cat') => CatalogMatcher }): PlannedReminder[]`. O domínio continua sem importar o catálogo; o serviço passa `catalogMatcher` em `matcherFor`.
   - `reminderFireDate(fireOn: IsoDate): Date` (09:00 locais)
   - `syncReminders(): Promise<void>` (nunca lança erro) e `ensureNotificationPermission(): Promise<boolean>`
 
