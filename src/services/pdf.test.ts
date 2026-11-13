@@ -135,20 +135,45 @@ describe('buildCardHtml', () => {
     expect(html).toMatch(/<td>—<\/td>/);
   });
 
-  it('escapes &, <, >, " and \' in every user-entered field', () => {
+  describe('escapes &, <, >, " and \' in each user-entered field on its own', () => {
     const nasty = `<script>x</script> & "q" 'a'`;
     const escaped = '&lt;script&gt;x&lt;/script&gt; &amp; &quot;q&quot; &#39;a&#39;';
-    const html = build({
-      pet: { ...pet, name: nasty, breed: nasty },
-      vaccinations: [
-        vaccination({ vaccineName: nasty, batch: nasty, brand: nasty, vetName: nasty, vetLicense: nasty, nextDueOn: null }),
-      ],
-      photos: [],
+    const cases: [string, Partial<Parameters<typeof buildCardHtml>[0]>][] = [
+      ['pet name', { pet: { ...pet, name: nasty } }],
+      ['breed', { pet: { ...pet, breed: nasty } }],
+      ['vaccine name', { vaccinations: [vaccination({ vaccineName: nasty })] }],
+      ['batch', { vaccinations: [vaccination({ batch: nasty })] }],
+      ['brand', { vaccinations: [vaccination({ brand: nasty })] }],
+      ['vet name', { vaccinations: [vaccination({ vetName: nasty })] }],
+      ['license', { vaccinations: [vaccination({ vetLicense: nasty })] }],
+    ];
+    it.each(cases)('%s', (_field, overrides) => {
+      const html = build(overrides);
+      expect(html).not.toContain('<script');
+      expect(html).not.toContain(nasty);
+      expect(html).toContain(escaped);
     });
-    expect(html).not.toContain('<script');
-    expect(html).not.toContain(nasty);
-    // name, breed, vaccine, batch, brand, vet, license (the name also appears in the title).
-    expect(html.split(escaped).length - 1).toBeGreaterThanOrEqual(7);
+  });
+
+  it('escapes a label that carries markup, in the title element too', () => {
+    const html = build({ labels: { ...labels, title: '<b>x</b>' } });
+    expect(html).not.toContain('<b>x</b>');
+    expect(html.match(/&lt;b&gt;x&lt;\/b&gt;/g)!.length).toBeGreaterThanOrEqual(2);
+    expect(html.slice(html.indexOf('<title>'), html.indexOf('</title>'))).toContain('&lt;b&gt;');
+  });
+
+  it('escapes quotes in the image alt attribute', () => {
+    const v = vaccination({ vaccineName: `a"b'c` });
+    const html = build({ vaccinations: [v], photos: [{ vaccinationId: v.id, dataUri: JPEG }] });
+    expect(html).toContain('alt="a&quot;b&#39;c — 18/03/2026"');
+  });
+
+  it('falls back to the "other" label for an unknown archive reason', () => {
+    const html = build({
+      pet: { ...pet, status: 'archived', archivedReason: 'weird' as never, archivedOn: null },
+      labels: { ...labels, reasonOther: 'Outro motivo' },
+    });
+    expect(html).toContain('Carteira encerrada: Outro motivo');
   });
 
   it('escapes the vaccine name inside the photo caption and attributes', () => {
@@ -258,6 +283,13 @@ describe('pdfFileName', () => {
     expect(pdfFileName('Thor', '2026-11-13')).toBe('carteira-thor-2026-11-13.pdf');
     expect(pdfFileName('Mel  da Conceição', '2026-11-13')).toBe('carteira-mel-da-conceicao-2026-11-13.pdf');
     expect(pdfFileName('../../Rex/é', '2026-11-13')).toBe('carteira-rex-e-2026-11-13.pdf');
+  });
+
+  it('limits the pet part to 60 characters without a trailing hyphen', () => {
+    const name = `${'a'.repeat(59)} bbbbbb`;
+    const file = pdfFileName(name, '2026-11-13');
+    expect(file).toBe(`carteira-${'a'.repeat(59)}-2026-11-13.pdf`);
+    expect(pdfFileName('x'.repeat(500), '2026-11-13')).toBe(`carteira-${'x'.repeat(60)}-2026-11-13.pdf`);
   });
 
   it('falls back to "pet" when nothing is left', () => {

@@ -1,3 +1,4 @@
+import { File } from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
@@ -29,6 +30,7 @@ afterAll(() => jest.useRealTimers());
 beforeEach(() => {
   jest.clearAllMocks();
   fakeFs.reset();
+  fakeFs.addDir('file:///cache');
   db.delete(pets).run();
   isAvailable.mockResolvedValue(true);
   print.mockImplementation(async () => {
@@ -78,9 +80,9 @@ describe('exportPetPdf', () => {
     expect(share).toHaveBeenCalledTimes(1);
     expect(share).toHaveBeenCalledWith(SHARED, expect.objectContaining({ mimeType: 'application/pdf' }));
     expect(existedWhenShared).toBe(true);
-    // Neither the random file nor the renamed one is left behind.
+    // The random file is gone; the shared one stays so the receiving app can still read it.
     expect(fakeFs.has(GENERATED)).toBe(false);
-    expect(fakeFs.has(SHARED)).toBe(false);
+    expect(fakeFs.has(SHARED)).toBe(true);
   });
 
   it('exports an archived wallet and says so in the header', async () => {
@@ -125,7 +127,44 @@ describe('exportPetPdf', () => {
     await exportPetPdf(createdPetId());
 
     expect(share).toHaveBeenCalledWith(SHARED, expect.anything());
-    expect(fakeFs.has(SHARED)).toBe(false);
+  });
+
+  it('removes the earlier exports before a new one and keeps only the new file', async () => {
+    wallet();
+    fakeFs.addFile('file:///cache/carteira-rex-2026-01-01.pdf', 1);
+    fakeFs.addFile('file:///cache/carteira-mel-2026-02-02.pdf', 1);
+    fakeFs.addFile('file:///cache/other.pdf', 1);
+
+    await exportPetPdf(createdPetId());
+
+    expect(fakeFs.names('file:///cache')).toEqual(['carteira-thor-2026-11-13.pdf', 'other.pdf']);
+  });
+
+  it('exports a second time and leaves only the new file', async () => {
+    wallet();
+    await exportPetPdf(createdPetId());
+    await exportPetPdf(createdPetId());
+    expect(fakeFs.names('file:///cache')).toEqual(['carteira-thor-2026-11-13.pdf']);
+  });
+
+  it('does not fail when the earlier exports cannot be deleted or listed', async () => {
+    wallet();
+    fakeFs.addFile('file:///cache/carteira-old-2026-01-01.pdf', 1, { failDelete: true });
+    await expect(exportPetPdf(createdPetId())).resolves.toBeUndefined();
+
+    fakeFs.reset(); // no cache directory at all: listing throws
+    await expect(exportPetPdf(createdPetId())).resolves.toBeUndefined();
+  });
+
+  it('rejects and leaves no file when moving the printed file to its readable name fails', async () => {
+    wallet();
+    jest.spyOn(File.prototype as never, 'move').mockRejectedValueOnce(new Error('move failed') as never);
+
+    await expect(exportPetPdf(createdPetId())).rejects.toThrow('move failed');
+
+    expect(share).not.toHaveBeenCalled();
+    expect(fakeFs.names('file:///cache/Print')).toEqual([]);
+    expect(fakeFs.names('file:///cache')).toEqual([]);
   });
 
   it('rejects and shares nothing when printing fails, without leaving files behind', async () => {
@@ -153,7 +192,7 @@ describe('exportPetPdf', () => {
     expect(print).not.toHaveBeenCalled();
   });
 
-  it('removes the generated files even when the share sheet fails', async () => {
+  it('removes the files even when the share sheet fails', async () => {
     wallet();
     share.mockRejectedValue(new Error('share failed'));
 

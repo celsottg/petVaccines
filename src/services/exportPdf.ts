@@ -39,6 +39,20 @@ function removeQuietly(file: File) {
 }
 
 /**
+ * Deletes the exports of earlier runs. The shared file is left in the cache after
+ * sharing (the receiving app may still be reading it), so the next export clears it.
+ */
+function removeEarlierExports() {
+  try {
+    for (const entry of Paths.cache.list()) {
+      if (entry instanceof File && /^carteira-.*\.pdf$/.test(entry.name)) removeQuietly(entry);
+    }
+  } catch {
+    // Nothing to clean, or the cache cannot be listed: the export goes on.
+  }
+}
+
+/**
  * Builds the PDF of a pet's wallet (all applications and the proof photos) on
  * the device and opens the system share sheet with it. A photo that cannot be
  * read is replaced by a line in the PDF. Rejects with `PET_NOT_FOUND`,
@@ -64,13 +78,17 @@ export async function exportPetPdf(petId: string): Promise<void> {
         .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1))
     : [];
 
-  // One at a time: each photo is a few MB of text, so they are not all held in flight at once.
+  // Memory is NOT bounded: every photo (up to 3 per record, each up to 2048 px, so a few
+  // hundred KB to a few MB) ends up base64-encoded inside one HTML string. They are read
+  // one at a time, but the string and the print WebView hold them all. Dropping photos is a
+  // product decision that has not been made, so there is deliberately no cap here.
   const photos: CardPhoto[] = [];
   for (const row of rows) photos.push({ vaccinationId: row.vaccinationId, dataUri: await readDataUri(row.file) });
 
   const generatedOn = todayLocal();
   const html = buildCardHtml({ pet, vaccinations: records, photos, generatedOn, labels: cardLabels() });
 
+  removeEarlierExports();
   const printed = new File((await Print.printToFileAsync({ html, width: PAGE_WIDTH, height: PAGE_HEIGHT })).uri);
   const target = new File(Paths.cache, pdfFileName(pet.name, generatedOn));
   try {
@@ -78,8 +96,10 @@ export async function exportPetPdf(petId: string): Promise<void> {
     removeQuietly(target);
     await printed.move(target);
     await Sharing.shareAsync(target.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
+  } catch (failure) {
+    removeQuietly(target);
+    throw failure;
   } finally {
     removeQuietly(printed);
-    removeQuietly(target);
   }
 }

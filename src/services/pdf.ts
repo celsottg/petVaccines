@@ -109,7 +109,7 @@ export function buildCardHtml(input: CardInput): string {
   const archivedLine = (() => {
     if (pet.status !== 'archived') return '';
     const reasonKey = { deceased: 'reasonDeceased', rehomed: 'reasonRehomed', other: 'reasonOther' } as const;
-    const reason = pet.archivedReason ? label(reasonKey[pet.archivedReason]) : '';
+    const reason = pet.archivedReason ? label(reasonKey[pet.archivedReason] ?? 'reasonOther') : '';
     const on = pet.archivedOn ? ` (${formatBrDate(pet.archivedOn)})` : '';
     return `<p class="archived">${label('archived')}${reason ? `: ${reason}` : ''}${on}</p>`;
   })();
@@ -175,6 +175,9 @@ ${photosSection}
 </html>`;
 }
 
+/** Keeps the whole file name far below the 255-byte file-system limit. */
+const MAX_NAME_LENGTH = 60;
+
 /**
  * `carteira-<pet>-<YYYY-MM-DD>.pdf`: the name reduced to lowercase ASCII letters,
  * digits and hyphens (accents removed), or `pet` when nothing is left.
@@ -185,6 +188,8 @@ export function pdfFileName(petName: string, generatedOn: IsoDate): string {
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
+    .slice(0, MAX_NAME_LENGTH)
+    .replace(/-+$/, '');
   return `carteira-${slug || 'pet'}-${generatedOn}.pdf`;
 }
