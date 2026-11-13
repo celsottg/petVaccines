@@ -91,7 +91,7 @@ describe('Editar vacina screen', () => {
     expect(screen).toHavePathname(`/vaccinations/${record.id}`);
   });
 
-  it('requests the notification permission when the saved record has a next dose, and not when it has none', async () => {
+  it('requests the notification permission when the saved record has a next dose', async () => {
     const pet = newPet(db);
     const withDose = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-03-01', nextDueOn: '2027-03-01' });
     await renderEdit(withDose.id);

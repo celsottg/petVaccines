@@ -28,6 +28,8 @@ export default function VaccinationDetailScreen() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const removedFiles = useRef<string[]>([]);
+  // The switch state a write was already sent from: a second tap before the screen shows the result is the same tap.
+  const switchWrittenFrom = useRef<boolean | null>(null);
   const guard = useGuardedAction();
 
   // Also covers the moment right after the record is deleted, before navigation finishes.
@@ -80,26 +82,35 @@ export default function VaccinationDetailScreen() {
           vaccination={vaccination}
           isCurrent={isCurrent}
           offsetsDays={reminderOffsetsDays}
-          onToggle={(remindersEnabled) =>
+          onToggle={(remindersEnabled) => {
+            const from = !remindersEnabled;
+            if (switchWrittenFrom.current === from) return;
+            switchWrittenFrom.current = from;
             // updateVaccination replaces every field, so each one is sent again with the new switch.
             guard.run(
-              () =>
-                updateVaccination(db, vaccination.id, {
-                  catalogId: vaccination.catalogId,
-                  vaccineName: vaccination.vaccineName,
-                  appliedOn: vaccination.appliedOn,
-                  nextDueOn: vaccination.nextDueOn,
-                  batch: vaccination.batch,
-                  brand: vaccination.brand,
-                  vetName: vaccination.vetName,
-                  vetLicense: vaccination.vetLicense,
-                  clinic: vaccination.clinic,
-                  notes: vaccination.notes,
-                  remindersEnabled,
-                }),
+              () => {
+                try {
+                  updateVaccination(db, vaccination.id, {
+                    catalogId: vaccination.catalogId,
+                    vaccineName: vaccination.vaccineName,
+                    appliedOn: vaccination.appliedOn,
+                    nextDueOn: vaccination.nextDueOn,
+                    batch: vaccination.batch,
+                    brand: vaccination.brand,
+                    vetName: vaccination.vetName,
+                    vetLicense: vaccination.vetLicense,
+                    clinic: vaccination.clinic,
+                    notes: vaccination.notes,
+                    remindersEnabled,
+                  });
+                } catch (error) {
+                  switchWrittenFrom.current = null;
+                  throw error;
+                }
+              },
               { unlockOnSuccess: true },
-            )
-          }
+            );
+          }}
         />
         <FormError message={guard.error} />
       </ScrollView>

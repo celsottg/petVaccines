@@ -1,4 +1,4 @@
-import { act, fireEvent } from '@testing-library/react-native';
+import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { View } from 'react-native';
@@ -469,6 +469,14 @@ describe('Detalhe da vacina screen', () => {
   });
 
   describe('Lembretes', () => {
+    // Pinned clock: every date below derives from this day, at 08:00 local (before the 09:00 reminder time).
+    const setClock = (hour: number) =>
+      jest.useFakeTimers({
+        now: new Date(2026, 10, 12, hour),
+        doNotFake: ['hrtime', 'nextTick', 'performance', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'setImmediate', 'clearImmediate', 'setInterval', 'clearInterval', 'setTimeout', 'clearTimeout'],
+      });
+    beforeEach(() => setClock(8));
+
     const inDays = (days: number) => addDays(todayLocal(), days);
     const withDose = (days: number, extra: Partial<Parameters<typeof createVaccination>[1]> = {}) => {
       const pet = newPet(db, { name: 'Thor' });
@@ -579,10 +587,50 @@ describe('Detalhe da vacina screen', () => {
       expect(await screen.findByText(/Os lembretes estão desligados no sistema/)).toBeOnTheScreen();
     });
 
-    it('shows no warning when the permission is granted or not asked yet', async () => {
+    it.each(['granted', 'undetermined'] as const)('shows no warning when the permission is %s', async (permission) => {
+      jest.mocked(getNotificationPermission).mockResolvedValue(permission);
+      const { created } = withDose(20);
+
+      await renderDetail(created.id);
+      await waitFor(() => expect(getNotificationPermission).toHaveBeenCalled());
+      await act(async () => {});
+
+      expect(screen.getByRole('switch', { name: 'Lembretes desta vacina' })).toBeOnTheScreen();
+      expect(screen.queryByText(/desligados no sistema/)).toBeNull();
+    });
+
+    it('lists the same-day reminder at 08:00 on the due date, before 09:00', async () => {
+      const { created } = withDose(0);
+
+      await renderDetail(created.id);
+
+      expect(screen.getByText('No dia')).toBeOnTheScreen();
+    });
+
+    it('does not list the same-day reminder at 10:00 on the due date', async () => {
+      setClock(10);
+      const { created } = withDose(0);
+
+      await renderDetail(created.id);
+
+      expect(screen.queryByText('No dia')).toBeNull();
+      expect(screen.getByText('Todas as datas de lembrete já passaram.')).toBeOnTheScreen();
+    });
+
+    it('sends one update when the switch is pressed twice before the screen updates', async () => {
       const { created } = withDose(20);
       await renderDetail(created.id);
-      expect(screen.queryByText(/desligados no sistema/)).toBeNull();
+      const transaction = jest.spyOn(db, 'transaction');
+      const toggle = reminderSwitch();
+
+      // Both taps reach the handler of the same render, before the screen can show the first result.
+      await act(async () => {
+        toggle.props.onClick({});
+        toggle.props.onClick({});
+      });
+
+      expect(transaction).toHaveBeenCalledTimes(1);
+      expect(stored()[0].remindersEnabled).toBe(false);
     });
 
     it('explains, with no switch, that a previous application has no reminders', async () => {
@@ -607,10 +655,13 @@ describe('Detalhe da vacina screen', () => {
     });
 
     it('explains, with no switch, that a closed wallet has no reminders', async () => {
+      jest.mocked(getNotificationPermission).mockResolvedValue('denied');
       const { pet, created } = withDose(20);
       archivePet(db, pet.id, 'other', null);
 
       await renderDetail(created.id);
+      await waitFor(() => expect(getNotificationPermission).toHaveBeenCalled());
+      await act(async () => {});
 
       expect(screen.getByText('A carteira está encerrada, então não há lembretes.')).toBeOnTheScreen();
       expect(screen.queryByRole('switch')).toBeNull();
