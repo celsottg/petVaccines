@@ -53,13 +53,14 @@ const UUID_JPG = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\
 const PHOTO_FOLDERS = ['photos', 'pets'];
 
 /**
- * Operating-system junk that a zip made on a Mac may carry: the `__MACOSX` folder and
- * `.DS_Store` files (at any depth). It is neither copied nor treated as unsafe.
- * Nothing else is ever ignored.
+ * Operating-system junk that a zip made on a Mac may carry. `path` is always the full path
+ * relative to the zip root: `__MACOSX` counts only as the FIRST segment (a folder of that
+ * name inside `photos/` is refused), and `.DS_Store` only as a whole file name, at any depth.
+ * Junk is neither copied nor treated as unsafe. Nothing else is ever ignored.
  */
-export function isJunkEntry(path: string): boolean {
+export function isJunkEntry(path: string, isDirectory = false): boolean {
   const parts = path.split('/');
-  return parts[0] === '__MACOSX' || parts[parts.length - 1] === '.DS_Store';
+  return parts[0] === '__MACOSX' || (!isDirectory && parts[parts.length - 1] === '.DS_Store');
 }
 
 /**
@@ -70,7 +71,7 @@ export function isJunkEntry(path: string): boolean {
  */
 export function checkEntries(allFiles: string[], allDirectories: string[]): void {
   const files = allFiles.filter((path) => !isJunkEntry(path));
-  const directories = allDirectories.filter((path) => !isJunkEntry(path));
+  const directories = allDirectories.filter((path) => !isJunkEntry(path, true));
   for (const dir of directories) {
     if (!PHOTO_FOLDERS.includes(dir)) throw new BackupError('UNSAFE_ENTRY');
   }

@@ -4,6 +4,7 @@ import { randomUUID } from 'expo-crypto';
 import { unzip } from 'react-native-zip-archive';
 
 import { db } from '@/db/client';
+import { attachments, pets } from '@/db/schema';
 
 import { PETS_DIR, PHOTOS_DIR, removeOrphanFiles } from '../files';
 import { replaceAllData } from './replaceAllData';
@@ -41,7 +42,6 @@ function removeQuietly(entry: File | Directory) {
   }
 }
 
-
 function isZipError(failure: unknown, ...codes: string[]) {
   const code = (failure as { code?: unknown } | null)?.code;
   return typeof code === 'string' && codes.includes(code);
@@ -52,7 +52,8 @@ function walk(staging: Directory): { files: string[]; directories: string[] } {
   const files: string[] = [];
   const directories: string[] = [];
   for (const entry of staging.list()) {
-    if (isJunkEntry(entry.name)) continue; // never looked into, never copied
+    // `isJunkEntry` always judges the full relative path, never a bare name.
+    if (isJunkEntry(entry.name, !(entry instanceof File))) continue; // never looked into, never copied
     if (entry instanceof File) {
       files.push(entry.name);
       continue;
@@ -60,9 +61,10 @@ function walk(staging: Directory): { files: string[]; directories: string[] } {
     directories.push(entry.name);
     if (entry.name !== PHOTOS_DIR && entry.name !== PETS_DIR) continue;
     for (const child of entry.list()) {
-      if (isJunkEntry(child.name)) continue;
-      if (child instanceof File) files.push(`${entry.name}/${child.name}`);
-      else directories.push(`${entry.name}/${child.name}`);
+      const path = `${entry.name}/${child.name}`;
+      if (isJunkEntry(path, !(child instanceof File))) continue;
+      if (child instanceof File) files.push(path);
+      else directories.push(path);
     }
   }
   return { files, directories };
@@ -168,10 +170,21 @@ export async function applyBackup(preview: BackupPreview): Promise<void> {
   // a moved `File` changes its own.
   const created: string[] = [];
   try {
+    // What the CURRENT database references is never overwritten or deleted. Any other file at a
+    // destination name (a leftover of a failed move, an orphan) is removed before copying, so a
+    // possibly truncated file is never adopted as a complete photo.
+    const referenced = new Set([
+      ...db.select({ file: attachments.file }).from(attachments).all().map((row) => row.file),
+      ...db.select({ file: pets.photoFile }).from(pets).all().flatMap((row) => (row.file ? [row.file] : [])),
+    ]);
     for (const folder of [PHOTOS_DIR, PETS_DIR]) new Directory(Paths.document, folder).create({ intermediates: true, idempotent: true });
     for (const [folder, name] of copies) {
       const destination = new File(new Directory(Paths.document, folder), name);
-      if (destination.exists) continue;
+      if (destination.exists) {
+        if (referenced.has(name)) continue;
+        removeQuietly(destination);
+        if (destination.exists) throw new Error('A leftover file could not be removed');
+      }
       const temporary = new File(new Directory(Paths.document, folder), `${name}${TEMP_SUFFIX}`);
       removeQuietly(temporary); // a stale one from an earlier interrupted run
       created.push(temporary.uri, destination.uri); // recorded before copying: a copy that fails part-way leaves a partial file

@@ -110,8 +110,13 @@ describe('operating-system junk', () => {
     expect(isJunkEntry(path)).toBe(true);
   });
 
-  it.each(['data.json', 'photos', 'photos/x.jpg', '.DS_Store.bak', 'MACOSX/x', 'a/__MACOSX/x', 'photos/._x.jpg'])('does not ignore %s', (path) => {
+  it.each(['data.json', 'photos', 'photos/x.jpg', '.DS_Store.bak', 'MACOSX/x', 'a/__MACOSX/x', 'photos/__MACOSX', 'pets/__MACOSX/x', 'photos/._x.jpg'])('does not ignore %s', (path) => {
     expect(isJunkEntry(path)).toBe(false);
+  });
+
+  it('does not ignore a directory named .DS_Store', () => {
+    expect(isJunkEntry('photos/.DS_Store', true)).toBe(false);
+    expect(codeOf(() => checkEntries([], ['photos/.DS_Store']))).toBe('UNSAFE_ENTRY');
   });
 
   it('lets checkEntries accept junk next to a valid backup, but nothing else', () => {

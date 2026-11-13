@@ -1,5 +1,6 @@
+import { eq } from 'drizzle-orm';
 import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
+import { Directory, File } from 'expo-file-system';
 import { unzip } from 'react-native-zip-archive';
 
 import { addAttachment } from '@/data/attachments';
@@ -87,6 +88,14 @@ const codeOfFailure = async (promise: Promise<unknown>) => {
   return undefined;
 };
 
+/** The old device has an attachment whose file has the SAME name as the backup's proof photo (restoring onto the same phone). */
+function oldDeviceWithSameNamedPhoto(size = 777) {
+  oldDevice();
+  const [attachment] = db.select().from(attachments).all();
+  db.update(attachments).set({ file: PROOF }).where(eq(attachments.id, attachment.id)).run();
+  fakeFs.addFile(`file:///docs/photos/${PROOF}`, size);
+}
+
 function oldDevice() {
   const pet = createPet(db, { name: 'Old', species: 'dog', photoFile: OLD_PHOTO });
   const archived = createPet(db, { name: 'Older', species: 'cat' });
@@ -132,7 +141,6 @@ describe('readBackup', () => {
 
   it('never reuses a leftover folder, even when it cannot be removed: stale files cannot satisfy the new backup', async () => {
     fakeFs.addDir(PARENT);
-    fakeFs.addDir(PARENT);
     fakeFs.addDir(`${PARENT}/old-run`);
     fakeFs.addFile(`${PARENT}/old-run/data.json`, 10, { text: JSON.stringify(sampleBackup()), failDelete: true });
     fakeFs.addFile(`${PARENT}/old-run/photos/${PROOF}`, 10, { failDelete: true });
@@ -174,6 +182,7 @@ describe('readBackup', () => {
     zipContent['.DS_Store'] = 'x';
     zipContent['photos/.DS_Store'] = 'x';
     zipContent['pets/.DS_Store'] = 'x';
+    zipContent['__MACOSX/anything/deep.jpg'] = 1;
 
     const preview = await readBackup(ZIP);
     await applyBackup(preview);
@@ -192,6 +201,9 @@ describe('readBackup', () => {
       ['a newer version', () => (zipContent['data.json'] = JSON.stringify({ format: 'petvaccines-backup', schemaVersion: 2 })), 'NEWER_VERSION'],
       ['an invalid body', () => (zipContent['data.json'] = JSON.stringify({ ...sampleBackup(), pets: 'x' })), 'INVALID_BACKUP'],
       ['an invalid reference', () => (zipContent['data.json'] = JSON.stringify({ ...sampleBackup(), vaccinations: [{ ...sampleBackup().vaccinations[0], pet_id: '77777777-7777-4777-8777-777777777777' }] })), 'INVALID_BACKUP'],
+      ['a __MACOSX folder inside photos/', () => (zipContent['photos/__MACOSX/x'] = 1), 'UNSAFE_ENTRY'],
+      ['a file named __MACOSX inside pets/', () => (zipContent['pets/__MACOSX'] = 1), 'UNSAFE_ENTRY'],
+      ['a folder named .DS_Store', () => (zipContent['photos/.DS_Store/x'] = 1), 'UNSAFE_ENTRY'],
       ['another file at the root', () => (zipContent['notes.txt'] = 'x'), 'UNSAFE_ENTRY'],
       ['a file in an unknown folder', () => (zipContent['other/x.jpg'] = 1), 'UNSAFE_ENTRY'],
       ['a nested folder', () => (zipContent['photos/sub/x.jpg'] = 1), 'UNSAFE_ENTRY'],
@@ -328,8 +340,8 @@ describe('applyBackup', () => {
     expect(db.select().from(vaccinations).all()).toHaveLength(2);
   });
 
-  it('does not overwrite a file with the same name that is already on the device', async () => {
-    fakeFs.addFile(`file:///docs/photos/${PROOF}`, 777);
+  it('does not overwrite a file with the same name that the current database references', async () => {
+    oldDeviceWithSameNamedPhoto();
     const preview = await read();
 
     await applyBackup(preview);
@@ -375,22 +387,20 @@ describe('applyBackup', () => {
   });
 
   it('removes only the files it created when a copy fails part-way, leaving everything else exactly as it was', async () => {
-    oldDevice();
-    fakeFs.addFile(`file:///docs/pets/${PET_PHOTO}`, 777); // same name as a photo of the backup, already on the device
+    oldDeviceWithSameNamedPhoto();
     const preview = await read();
-    fakeFs.addFile(`${preview.stagingDir}/photos/${PROOF}`, 10, { failCopy: true });
+    fakeFs.addFile(`${preview.stagingDir}/pets/${PET_PHOTO}`, 10, { failCopy: true });
     const before = snapshot();
 
     await expect(applyBackup(preview)).rejects.toThrow();
 
     expect(snapshot()).toEqual(before);
-    expect(fakeFs.size(`file:///docs/pets/${PET_PHOTO}`)).toBe(777);
+    expect(fakeFs.size(`file:///docs/photos/${PROOF}`)).toBe(777);
     expect(getSettings(db).dueSoonDays).toBe(99);
   });
 
   it('removes the files it created and keeps everything else when the transaction fails', async () => {
-    oldDevice();
-    fakeFs.addFile(`file:///docs/photos/${PROOF}`, 777);
+    oldDeviceWithSameNamedPhoto();
     fakeFs.addFile('file:///docs/photos/already-here.jpg', 5);
     const preview = await read();
     const before = snapshot();
@@ -409,6 +419,64 @@ describe('applyBackup', () => {
     expect(snapshot()).toEqual(before);
     expect(fakeFs.size(`file:///docs/photos/${PROOF}`)).toBe(777);
     expect(fakeFs.has(`file:///docs/pets/${PET_PHOTO}`)).toBe(false);
+  });
+
+  describe('when renaming a photo from its temporary name fails', () => {
+    /** The nth photo's move throws, after leaving a half-written file at the final name, as a platform might. */
+    function failMove(nth: number) {
+      let moves = 0;
+      const move = File.prototype.move;
+      return jest.spyOn(File.prototype, 'move').mockImplementation(function (this: File, destination: File | Directory) {
+        moves += 1;
+        if (moves < nth) return move.call(this, destination);
+        fakeFs.addFile(destination.uri, 1);
+        throw new Error('cannot move');
+      });
+    }
+
+    it('when the second move fails, the temporary file and both created files are gone and the snapshot is unchanged', async () => {
+      oldDevice();
+      const preview = await read();
+      const before = snapshot();
+      failMove(2);
+
+      await expect(applyBackup(preview)).rejects.toThrow('cannot move');
+
+      expect(snapshot()).toEqual(before);
+      expect(fakeFs.names('file:///docs/photos')).toEqual(['88888888-8888-4888-8888-888888888881.jpg']);
+      expect(fakeFs.names('file:///docs/pets')).toEqual([OLD_PHOTO]);
+    });
+
+    it('keeps a pre-existing referenced file with the same name (size 777) when a move fails', async () => {
+      oldDeviceWithSameNamedPhoto();
+      const preview = await read();
+      const before = snapshot();
+      failMove(1); // the pet photo is the only copy: the proof photo is already there
+
+      await expect(applyBackup(preview)).rejects.toThrow('cannot move');
+
+      expect(snapshot()).toEqual(before);
+      expect(fakeFs.size(`file:///docs/photos/${PROOF}`)).toBe(777);
+    });
+
+    it('does not adopt a leftover from a failed move whose cleanup also failed: a second import of the same backup is complete', async () => {
+      const preview = await read();
+      failMove(2);
+      const deleteSpy = jest.spyOn(File.prototype, 'delete').mockImplementation(() => {
+        throw new Error('cannot delete');
+      });
+
+      await expect(applyBackup(preview)).rejects.toThrow('cannot move');
+      expect(fakeFs.has(`file:///docs/photos/${PROOF}`) || fakeFs.has(`file:///docs/pets/${PET_PHOTO}`)).toBe(true); // a leftover really remained
+      jest.restoreAllMocks();
+      await applyBackup(preview);
+
+      expect(fakeFs.size(`file:///docs/photos/${PROOF}`)).toBe(10);
+      expect(fakeFs.size(`file:///docs/pets/${PET_PHOTO}`)).toBe(10);
+      expect(fakeFs.names('file:///docs/photos')).toEqual([PROOF]);
+      expect(fakeFs.names('file:///docs/pets')).toEqual([PET_PHOTO]);
+      expect(deleteSpy).toHaveBeenCalled();
+    });
   });
 
   it('still succeeds when the old photos cannot be deleted', async () => {
