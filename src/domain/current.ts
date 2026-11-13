@@ -11,7 +11,7 @@ export function vaccineKey(v: VaccineRef): string {
   if (v.catalogId !== null) return `catalog:${v.catalogId}`;
   const name = v.vaccineName
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase();
   return `name:${name}`;
