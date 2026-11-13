@@ -1,4 +1,5 @@
 import { fireEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { View } from 'react-native';
 
@@ -16,6 +17,8 @@ const renderForm = () => renderRouter(routes, { initialUrl: '/pets/new' });
 const allPets = () => db.select().from(pets).all();
 
 describe('Novo pet screen', () => {
+  afterEach(() => jest.restoreAllMocks());
+
   beforeEach(() => {
     db.delete(pets).run();
     db.delete(settings).run();
@@ -117,5 +120,37 @@ describe('Novo pet screen', () => {
 
     expect(screen.queryByRole('button', { name: 'Dar baixa' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Excluir pet' })).toBeNull();
+  });
+
+  it('creates one pet when "Salvar" is pressed twice before navigation finishes', async () => {
+    await renderForm();
+    // Spy after rendering: the router installs its imperative API on render.
+    jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+
+    await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+    expect(allPets()).toHaveLength(1);
+  });
+
+  it('shows a message and does not navigate when the write fails, then saves on retry', async () => {
+    await renderForm();
+    const dismissTo = jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+    await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
+    const failing = jest.spyOn(db, 'transaction').mockImplementation(() => {
+      throw new Error('disk full');
+    });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+    expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+    expect(dismissTo).not.toHaveBeenCalled();
+    expect(allPets()).toEqual([]);
+
+    failing.mockRestore();
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+    expect(allPets()).toHaveLength(1);
+    expect(dismissTo).toHaveBeenCalledTimes(1);
   });
 });

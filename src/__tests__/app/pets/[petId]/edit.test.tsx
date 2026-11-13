@@ -1,4 +1,5 @@
 import { fireEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { View } from 'react-native';
 
@@ -107,5 +108,23 @@ describe('Editar pet screen', () => {
     expect(db.select().from(vaccinations).all()).toEqual([]);
     expect(screen).toHavePathname('/');
     expect(screen.getByText('Nenhum pet cadastrado')).toBeOnTheScreen();
+  });
+
+  it('keeps the pet and shows a message when deleting fails', async () => {
+    const pet = newPet(db, { name: 'Rex' });
+    await renderEdit(pet.id);
+    const dismissTo = jest.spyOn(router, 'dismissTo');
+    const failing = jest.spyOn(db, 'transaction').mockImplementation(() => {
+      throw new Error('disk full');
+    });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir pet' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+    expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+    expect(dismissTo).not.toHaveBeenCalled();
+    failing.mockRestore();
+    dismissTo.mockRestore();
+    expect(allPets()).toHaveLength(1);
   });
 });

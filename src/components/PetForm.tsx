@@ -12,7 +12,9 @@ import { useTheme } from '@/theme';
 import { Button } from './Button';
 import { ChoiceChips } from './ChoiceChips';
 import { FormField } from './FormField';
+import { FormError } from './FormError';
 import { dateErrorLabel } from './petLabels';
+import { useGuardedAction } from './useGuardedAction';
 
 interface PetFormProps {
   /** The pet being edited; omitted when creating one. */
@@ -32,6 +34,7 @@ export function PetForm({ pet, onSubmit, children }: PetFormProps) {
   const [sex, setSex] = useState<Pet['sex']>(pet?.sex ?? null);
   const [birth, setBirth] = useState(pet?.birthOn ? formatBrDate(pet.birthOn) : '');
   const [errors, setErrors] = useState<Errors>({});
+  const guard = useGuardedAction();
 
   function submit() {
     const found: Errors = {};
@@ -54,7 +57,7 @@ export function PetForm({ pet, onSubmit, children }: PetFormProps) {
       }
     }
     setErrors(found);
-    if (result.success && !found.birthOn) onSubmit(result.data);
+    if (result.success && !found.birthOn) guard.run(() => onSubmit(result.data));
   }
 
   return (
@@ -94,6 +97,7 @@ export function PetForm({ pet, onSubmit, children }: PetFormProps) {
           onChangeText={(text) => setBirth(maskBrDate(text))}
         />
         {children}
+        <FormError message={guard.error} />
       </ScrollView>
       <View style={[styles.footer, { padding: spacing.md, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <Button label={t('pets.form.save')} onPress={submit} />

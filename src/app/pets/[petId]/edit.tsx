@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { FormError } from '@/components/FormError';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PetForm } from '@/components/PetForm';
+import { useGuardedAction } from '@/components/useGuardedAction';
 import { deletePet, updatePet } from '@/data/pets';
 import { usePet } from '@/data/usePets';
 import { db } from '@/db/client';
@@ -16,6 +18,7 @@ export default function EditPetScreen() {
   const { pet } = usePet(petId);
   const { spacing } = useTheme();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const guard = useGuardedAction();
 
   // Also covers the moment right after the pet is deleted, before navigation finishes.
   if (!pet) return null;
@@ -36,6 +39,7 @@ export default function EditPetScreen() {
             onPress={() => router.push({ pathname: '/pets/[petId]/archive', params: { petId: pet.id } })}
           />
           <Button variant="danger" label={t('pets.form.delete')} onPress={() => setConfirmingDelete(true)} />
+          <FormError message={guard.error} />
         </View>
       </PetForm>
       <ConfirmDialog
@@ -48,9 +52,11 @@ export default function EditPetScreen() {
         onCancel={() => setConfirmingDelete(false)}
         onConfirm={() => {
           setConfirmingDelete(false);
-          // The returned file names (photo, proof photos) are removed from disk in Task 7.
-          deletePet(db, pet.id);
-          router.dismissTo('/');
+          guard.run(() => {
+            // The returned file names (photo, proof photos) are removed from disk in Task 7.
+            deletePet(db, pet.id);
+            router.dismissTo('/');
+          });
         }}
       />
     </>

@@ -82,7 +82,8 @@
         }
       },
       "reactivateHint": "Você pode reativar a carteira a qualquer momento.",
-      "confirm": "Confirmar baixa"
+      "confirm": "Confirmar baixa",
+      "reasonRequired": "Escolha o motivo da baixa."
     },
     "reasons": {
       "deceased": "Faleceu",
@@ -104,6 +105,7 @@
     }
   },
   "common": {
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "saveError": "Não foi possível salvar. Tente novamente."
   }
 }
