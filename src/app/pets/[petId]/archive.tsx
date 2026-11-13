@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { ChoiceChips } from '@/components/ChoiceChips';
 import { FormError } from '@/components/FormError';
 import { FormField } from '@/components/FormField';
+import { NotFound } from '@/components/NotFound';
 import { PetCard } from '@/components/PetCard';
 import { useGuardedAction } from '@/components/useGuardedAction';
 import { dateErrorLabel, petDetails } from '@/components/petLabels';
@@ -25,15 +26,16 @@ const EFFECTS = ['reminders', 'badges', 'list', 'history', 'backup'] as const;
 
 export default function ArchivePetScreen() {
   const { petId } = useLocalSearchParams<{ petId: string }>();
-  const { pet } = usePet(petId);
+  const { pet, loaded } = usePet(petId);
   const { colors, spacing, radius, typography } = useTheme();
   const [reason, setReason] = useState<ArchiveReason | null>(null);
   const [date, setDate] = useState('');
   const [dateError, setDateError] = useState<string>();
   const [reasonError, setReasonError] = useState<string>();
+  const [leaving, setLeaving] = useState(false);
   const guard = useGuardedAction();
 
-  if (!pet) return null;
+  if (!pet || pet.status !== 'active') return loaded && !leaving ? <NotFound /> : null;
 
   function confirm() {
     if (!pet) return;
@@ -48,7 +50,10 @@ export default function ArchivePetScreen() {
       return;
     }
     guard.run(() => archivePet(db, pet.id, result.data.reason, result.data.on), {
-      onSuccess: () => router.dismissTo('/'),
+      onSuccess: () => {
+        setLeaving(true);
+        router.dismissTo('/');
+      },
     });
   }
 

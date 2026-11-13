@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import HomeScreen from '@/app/index';
 import ArchivePetScreen from '@/app/pets/[petId]/archive';
+import { archivePet } from '@/data/pets';
 import { newPet } from '@/data/testHelpers';
 import { db } from '@/db/client';
 import { pets, settings } from '@/db/schema';
@@ -116,5 +117,38 @@ describe('Dar baixa screen', () => {
     expect(screen.getByText('A data não pode ser futura.')).toBeOnTheScreen();
 
     expect(onlyPet().status).toBe('active');
+  });
+
+  it('shows a way back to Meus pets when the pet does not exist', async () => {
+    await renderArchive('missing-pet');
+
+    expect(screen.getByText('Não encontramos este item')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Voltar para Meus pets' }));
+    expect(screen).toHavePathname('/');
+  });
+
+  it('does not archive a pet whose wallet is already closed', async () => {
+    const pet = newPet(db, { name: 'Rex' });
+    archivePet(db, pet.id, 'other', null);
+    const before = onlyPet();
+
+    await renderArchive(pet.id);
+
+    expect(screen.getByText('Não encontramos este item')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Confirmar baixa' })).toBeNull();
+    expect(onlyPet()).toEqual(before);
+  });
+
+  it('does not show "not found" after a successful archive while navigation is pending', async () => {
+    const pet = newPet(db, { name: 'Rex' });
+    await renderArchive(pet.id);
+    jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Outro' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Confirmar baixa' }));
+
+    expect(onlyPet().status).toBe('archived');
+    expect(screen.queryByText('Não encontramos este item')).toBeNull();
+    jest.restoreAllMocks();
   });
 });

@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { Button } from '@/components/Button';
 import { FormError } from '@/components/FormError';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { NotFound } from '@/components/NotFound';
 import { PetForm } from '@/components/PetForm';
 import { useGuardedAction } from '@/components/useGuardedAction';
 import { deletePet, updatePet } from '@/data/pets';
@@ -15,13 +16,14 @@ import { useTheme } from '@/theme';
 
 export default function EditPetScreen() {
   const { petId } = useLocalSearchParams<{ petId: string }>();
-  const { pet } = usePet(petId);
+  const { pet, loaded } = usePet(petId);
   const { spacing } = useTheme();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const guard = useGuardedAction();
 
   // Also covers the moment right after the pet is deleted, before navigation finishes.
-  if (!pet) return null;
+  if (!pet || pet.status !== 'active') return loaded && !leaving ? <NotFound /> : null;
 
   return (
     <>
@@ -29,7 +31,7 @@ export default function EditPetScreen() {
       <PetForm
         pet={pet}
         onSubmit={(input) => updatePet(db, pet.id, input)}
-        onSaved={() => router.dismissTo('/')}>
+        onSaved={() => router.dismissTo({ pathname: '/pets/[petId]', params: { petId: pet.id } })}>
         <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
           <Button
             variant="secondary"
@@ -55,7 +57,12 @@ export default function EditPetScreen() {
               // The returned file names (photo, proof photos) are removed from disk in Task 7.
               deletePet(db, pet.id);
             },
-            { onSuccess: () => router.dismissTo('/') },
+            {
+              onSuccess: () => {
+                setLeaving(true);
+                router.dismissTo('/');
+              },
+            },
           );
         }}
       />

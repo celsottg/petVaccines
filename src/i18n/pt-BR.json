@@ -107,5 +107,87 @@
   "common": {
     "cancel": "Cancelar",
     "saveError": "Não foi possível salvar. Tente novamente."
+  },
+  "vaccinations": {
+    "wallet": {
+      "edit": "Editar pet",
+      "add": "Nova vacina",
+      "filterLabel": "Mostrar",
+      "filters": {
+        "all": "Todas",
+        "due_soon": "Vence em breve",
+        "overdue": "Vencidas"
+      },
+      "previousTitle": "Aplicações anteriores",
+      "empty": {
+        "title": "Nenhuma vacina registrada",
+        "description": "Registre a primeira vacina de {{name}} para começar a carteira."
+      },
+      "emptyFiltered": "Nenhuma vacina nesta situação.",
+      "readOnly": "Carteira encerrada. Você pode consultar o histórico, mas não alterá-lo.",
+      "reactivate": "Reativar carteira"
+    },
+    "card": {
+      "applied": "Aplicada em {{date}}",
+      "nextDue": "Próxima dose em {{date}}",
+      "noReceipt": "Sem comprovante"
+    },
+    "status": {
+      "ok": "Em dia",
+      "due_soon_today": "Vence hoje",
+      "due_soon_one": "Vence em {{count}} dia",
+      "due_soon_other": "Vence em {{count}} dias",
+      "overdue_one": "Vencida há {{count}} dia",
+      "overdue_other": "Vencida há {{count}} dias"
+    },
+    "form": {
+      "newTitle": "Nova vacina",
+      "editTitle": "Editar vacina",
+      "vaccine": "Vacina",
+      "vaccineHint": "Escolha do catálogo ou digite outro nome.",
+      "suggestionsLabel": "Vacinas do catálogo",
+      "appliedOn": "Data de aplicação",
+      "nextDue": "Próxima dose",
+      "nextDueHint": "Para vacinas do catálogo, sugerimos a data do reforço. Vale sempre a orientação do veterinário.",
+      "datePlaceholder": "DD/MM/AAAA",
+      "detailsTitle": "Detalhes (opcionais)",
+      "batch": "Lote",
+      "brand": "Marca",
+      "vetName": "Veterinário",
+      "vetLicense": "CRMV",
+      "clinic": "Clínica",
+      "notes": "Observações",
+      "save": "Salvar",
+      "errors": {
+        "nameRequired": "Informe o nome da vacina.",
+        "appliedRequired": "Informe a data de aplicação.",
+        "beforeBirth": "A vacina não pode ser anterior ao nascimento do pet.",
+        "nextNotAfter": "A próxima dose deve ser depois da data de aplicação."
+      }
+    },
+    "detail": {
+      "pet": "Pet",
+      "appliedOn": "Aplicada em",
+      "nextDue": "Próxima dose",
+      "batch": "Lote",
+      "brand": "Marca",
+      "vet": "Veterinário",
+      "vetLicenseOnly": "CRMV {{license}}",
+      "clinic": "Clínica",
+      "notes": "Observações",
+      "booster": "Registrar reforço",
+      "edit": "Editar",
+      "delete": "Excluir vacina",
+      "deleteConfirm": {
+        "title": "Excluir {{name}}?",
+        "message": "Isso apaga o registro e os comprovantes dele. Não dá para desfazer.",
+        "confirm": "Excluir"
+      }
+    }
+  },
+  "notFound": {
+    "title": "Não encontramos este item",
+    "description": "Ele pode ter sido excluído.",
+    "back": "Voltar para Meus pets"
   }
 }

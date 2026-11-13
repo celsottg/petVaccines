@@ -119,12 +119,12 @@ describe('Meus pets screen', () => {
     expect(screen).toHavePathname('/pets/new');
   });
 
-  it('opens the edit screen when a pet card is pressed (the wallet arrives in Task 6)', async () => {
+  it('opens the wallet of the pet when its card is pressed', async () => {
     const pet = newPet(db, { name: 'Thor' });
-    await renderRouter({ ...routes, 'pets/[petId]/edit': () => <View /> });
+    await renderRouter({ ...routes, 'pets/[petId]/index': () => <View /> });
 
     await fireEvent.press(screen.getByRole('button', { name: /Thor/ }));
 
-    expect(screen).toHavePathname(`/pets/${pet.id}/edit`);
+    expect(screen).toHavePathname(`/pets/${pet.id}`);
   });
 });

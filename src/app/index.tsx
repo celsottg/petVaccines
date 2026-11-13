@@ -37,8 +37,7 @@ export default function PetsScreen() {
             name={pet.name}
             details={petDetails(pet, today)}
             badge={badge ? { status: badge.status, label: badgeLabel(badge) } : undefined}
-            // Task 6 points this at the pet's wallet; until then it opens the edit screen.
-            onPress={() => router.push({ pathname: '/pets/[petId]/edit', params: { petId: pet.id } })}
+            onPress={() => router.push({ pathname: '/pets/[petId]', params: { petId: pet.id } })}
           />
         ))}
         {archivedCount > 0 ? (
