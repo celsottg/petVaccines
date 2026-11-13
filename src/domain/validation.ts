@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { IsoDate } from './dates';
 
 // Issue messages are stable codes; the screens translate them.
-const isoDate = z
+export const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'invalid_date')
   .refine((s) => {

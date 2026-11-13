@@ -187,3 +187,11 @@ describe('open-source files (Task 1, Step 7)', () => {
     }
   });
 });
+
+describe('backup zip library (Task 10)', () => {
+  it('uses react-native-zip-archive 8 or later, with its config plugin', () => {
+    const version = json('package.json').dependencies['react-native-zip-archive'];
+    expect(Number(/\d+/.exec(version)?.[0])).toBeGreaterThanOrEqual(8);
+    expect(json('app.json').expo.plugins).toContain('react-native-zip-archive');
+  });
+});

@@ -4,7 +4,7 @@
 
 type Part = string | { uri: string };
 
-const files = new Map<string, { size: number; failDelete?: boolean; base64?: string }>();
+const files = new Map<string, { size: number; failDelete?: boolean; base64?: string; text?: string; failCopy?: boolean }>();
 const dirs = new Set<string>();
 
 function join(parts: Part[]): string {
@@ -38,6 +38,24 @@ class FakeFile {
     if (entry.base64 === undefined) return Promise.reject(new Error(`Cannot read: ${this.uri}`));
     return Promise.resolve(entry.base64);
   }
+  create(options: { overwrite?: boolean } = {}) {
+    if (files.has(this.uri) && !options.overwrite) throw new Error(`File exists: ${this.uri}`);
+    files.set(this.uri, { size: 0, text: '' });
+  }
+  write(content: string) {
+    const entry = files.get(this.uri);
+    if (!entry) return Promise.reject(new Error(`File does not exist: ${this.uri}`));
+    entry.text = content;
+    entry.size = content.length;
+    return Promise.resolve();
+  }
+  copy(destination: FakeFile) {
+    const entry = files.get(this.uri);
+    if (!entry) return Promise.reject(new Error(`File does not exist: ${this.uri}`));
+    if (entry.failCopy) return Promise.reject(new Error(`Cannot copy: ${this.uri}`));
+    files.set(destination.uri, { ...entry, failCopy: false });
+    return Promise.resolve();
+  }
   delete() {
     const entry = files.get(this.uri);
     if (!entry) throw new Error(`File does not exist: ${this.uri}`);
@@ -69,6 +87,11 @@ class FakeDirectory {
     if (dirs.has(this.uri) && !options.idempotent) throw new Error(`Directory exists: ${this.uri}`);
     dirs.add(this.uri);
   }
+  delete() {
+    if (!dirs.has(this.uri)) throw new Error(`Directory does not exist: ${this.uri}`);
+    for (const uri of [...files.keys()]) if (uri.startsWith(`${this.uri}/`)) files.delete(uri);
+    for (const uri of [...dirs]) if (uri === this.uri || uri.startsWith(`${this.uri}/`)) dirs.delete(uri);
+  }
   list() {
     if (!dirs.has(this.uri)) throw new Error(`Directory does not exist: ${this.uri}`);
     const prefix = `${this.uri}/`;
@@ -94,13 +117,20 @@ export const fakeFs = {
     files.clear();
     dirs.clear();
   },
-  addFile(uri: string, size = 100, options: { failDelete?: boolean; base64?: string } = {}) {
-    files.set(uri, { size, failDelete: options.failDelete, base64: options.base64 });
+  addFile(uri: string, size = 100, options: { failDelete?: boolean; base64?: string; failCopy?: boolean } = {}) {
+    files.set(uri, { size, failDelete: options.failDelete, base64: options.base64, failCopy: options.failCopy });
   },
   addDir(uri: string) {
     dirs.add(uri);
   },
   has: (uri: string) => files.has(uri),
+  hasDir: (uri: string) => dirs.has(uri),
+  /** Text written to a file with `write`. */
+  text: (uri: string) => files.get(uri)?.text,
+  /** Paths of every file under a directory, relative to it and sorted (what a zip of it would hold). */
+  tree(dirUri: string) {
+    return [...files.keys()].filter((uri) => uri.startsWith(`${dirUri}/`)).map((uri) => uri.slice(dirUri.length + 1)).sort();
+  },
   /** Names of the files directly inside a directory, sorted. */
   names(dirUri: string) {
     return [...files.keys()]

@@ -318,5 +318,8 @@
     "photoMissing": "Não foi possível incluir esta foto.",
     "generatedOn": "Gerado em",
     "notice": "Registro declaratório feito pelo tutor. Não substitui a carteira de vacinação emitida pelo veterinário."
+  },
+  "backup": {
+    "shareTitle": "Backup do Vacinas do Pet"
   }
 }
