@@ -9,6 +9,7 @@ import { FormError } from '@/components/FormError';
 import { NotFound } from '@/components/NotFound';
 import { PetCard } from '@/components/PetCard';
 import { VaccinationCard } from '@/components/VaccinationCard';
+import { useExportPdf } from '@/components/useExportPdf';
 import { useGuardedAction } from '@/components/useGuardedAction';
 import { petDetails } from '@/components/petLabels';
 import { reactivatePet } from '@/data/pets';
@@ -28,6 +29,7 @@ export default function WalletScreen() {
   const { colors, spacing, typography } = useTheme();
   const [filter, setFilter] = useState<WalletFilter>('all');
   const guard = useGuardedAction();
+  const exportPdf = useExportPdf(petId);
 
   if (!pet || !wallet) return loaded ? <NotFound /> : null;
 
@@ -62,7 +64,17 @@ export default function WalletScreen() {
             <FormError message={guard.error} />
           </>
         )}
-        {/* Task 9 adds "Exportar PDF" here. */}
+        {!isEmpty ? (
+          <>
+            <Button
+              variant="secondary"
+              busy={exportPdf.exporting}
+              label={t(exportPdf.exporting ? 'vaccinations.wallet.exportingPdf' : 'vaccinations.wallet.exportPdf')}
+              onPress={() => void exportPdf.start()}
+            />
+            <FormError message={exportPdf.error} />
+          </>
+        ) : null}
         {active && !isEmpty ? (
           <ChoiceChips
             label={t('vaccinations.wallet.filterLabel')}

@@ -125,7 +125,11 @@
       },
       "emptyFiltered": "Nenhuma vacina nesta situação.",
       "readOnly": "Carteira encerrada. Você pode consultar o histórico, mas não alterá-lo.",
-      "reactivate": "Reativar carteira"
+      "reactivate": "Reativar carteira",
+      "exportPdf": "Exportar PDF",
+      "exportingPdf": "Gerando PDF…",
+      "exportPdfError": "Não foi possível gerar o PDF. Tente novamente.",
+      "exportPdfUnavailable": "Este aparelho não permite compartilhar arquivos."
     },
     "card": {
       "applied": "Aplicada em {{date}}",
@@ -287,5 +291,32 @@
       "repositoryError": "Não foi possível abrir o navegador.",
       "disclaimer": "Registro declaratório feito pelo tutor. Não substitui a carteira de vacinação emitida pelo veterinário."
     }
+  },
+  "pdf": {
+    "title": "Carteira de vacinação",
+    "name": "Nome",
+    "species": "Espécie",
+    "breed": "Raça",
+    "sex": "Sexo",
+    "birth": "Nascimento",
+    "speciesDog": "Cão",
+    "speciesCat": "Gato",
+    "sexMale": "Macho",
+    "sexFemale": "Fêmea",
+    "archived": "Carteira encerrada",
+    "reasonDeceased": "Faleceu",
+    "reasonRehomed": "Mudou de tutor",
+    "reasonOther": "Outro",
+    "vaccine": "Vacina",
+    "appliedOn": "Data",
+    "nextDue": "Próxima dose",
+    "batch": "Lote",
+    "brand": "Marca",
+    "vet": "Veterinário",
+    "license": "CRMV",
+    "photosTitle": "Comprovantes",
+    "photoMissing": "Não foi possível incluir esta foto.",
+    "generatedOn": "Gerado em",
+    "notice": "Registro declaratório feito pelo tutor. Não substitui a carteira de vacinação emitida pelo veterinário."
   }
 }

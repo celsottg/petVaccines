@@ -4,7 +4,7 @@
 
 type Part = string | { uri: string };
 
-const files = new Map<string, { size: number; failDelete?: boolean }>();
+const files = new Map<string, { size: number; failDelete?: boolean; base64?: string }>();
 const dirs = new Set<string>();
 
 function join(parts: Part[]): string {
@@ -32,6 +32,12 @@ class FakeFile {
   get size() {
     return files.get(this.uri)?.size ?? 0;
   }
+  base64() {
+    const entry = files.get(this.uri);
+    if (!entry) return Promise.reject(new Error(`File does not exist: ${this.uri}`));
+    if (entry.base64 === undefined) return Promise.reject(new Error(`Cannot read: ${this.uri}`));
+    return Promise.resolve(entry.base64);
+  }
   delete() {
     const entry = files.get(this.uri);
     if (!entry) throw new Error(`File does not exist: ${this.uri}`);
@@ -41,6 +47,7 @@ class FakeFile {
   move(destination: FakeFile) {
     const entry = files.get(this.uri);
     if (!entry) throw new Error(`File does not exist: ${this.uri}`);
+    if (files.has(destination.uri)) throw new Error(`Destination already exists: ${destination.uri}`);
     files.delete(this.uri);
     files.set(destination.uri, entry);
     return Promise.resolve();
@@ -87,8 +94,8 @@ export const fakeFs = {
     files.clear();
     dirs.clear();
   },
-  addFile(uri: string, size = 100, options: { failDelete?: boolean } = {}) {
-    files.set(uri, { size, failDelete: options.failDelete });
+  addFile(uri: string, size = 100, options: { failDelete?: boolean; base64?: string } = {}) {
+    files.set(uri, { size, failDelete: options.failDelete, base64: options.base64 });
   },
   addDir(uri: string) {
     dirs.add(uri);
