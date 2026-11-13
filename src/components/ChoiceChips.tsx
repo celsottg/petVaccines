@@ -7,10 +7,11 @@ interface ChoiceChipsProps<T extends string> {
   options: { value: T; label: string }[];
   value: T | null;
   onChange: (value: T) => void;
+  error?: string;
 }
 
 /** Single choice, shown as chips. The selection is announced to screen readers, not only colored. */
-export function ChoiceChips<T extends string>({ label, options, value, onChange }: ChoiceChipsProps<T>) {
+export function ChoiceChips<T extends string>({ label, options, value, onChange, error }: ChoiceChipsProps<T>) {
   const { colors, spacing, radius, typography } = useTheme();
 
   return (
@@ -42,6 +43,11 @@ export function ChoiceChips<T extends string>({ label, options, value, onChange 
           );
         })}
       </View>
+      {error ? (
+        <Text accessibilityLiveRegion="polite" style={[typography.caption, { color: colors.status.overdue.text }]}>
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
