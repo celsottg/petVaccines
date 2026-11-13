@@ -10,6 +10,8 @@ export type ColorPalette = {
   border: string;
   text: string;
   textSecondary: string;
+  /** Translucent layer behind modal dialogs. */
+  scrim: string;
   status: {
     ok: StatusColors;
     dueSoon: StatusColors;
@@ -26,6 +28,7 @@ const light: ColorPalette = {
   border: '#E2E0EC',
   text: '#1B1A22',
   textSecondary: '#5E5C6B',
+  scrim: '#00000080',
   status: {
     ok: { background: '#DDF3E4', text: '#17602F' },
     dueSoon: { background: '#FCEFC7', text: '#7A4D00' },
@@ -44,6 +47,7 @@ const dark: ColorPalette = {
   border: '#34323F',
   text: '#F1F0F5',
   textSecondary: '#B4B2C0',
+  scrim: '#000000B3',
   status: {
     ok: { background: '#173A24', text: '#8EE0A9' },
     dueSoon: { background: '#3D3010', text: '#F5CF6B' },

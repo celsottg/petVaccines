@@ -32,9 +32,12 @@ describe('theme tokens', () => {
     expect(Object.keys(theme.colors.dark).sort()).toEqual(Object.keys(theme.colors.light).sort());
     expect(Object.keys(theme.colors.dark.status).sort()).toEqual(['dueSoon', 'neutral', 'ok', 'overdue']);
   });
-  it('all colors are valid 6-digit hex', () => {
+  it('all colors are valid 6-digit hex, or 8-digit with alpha', () => {
     const all = JSON.stringify(theme.colors).match(/"#[^"]*"/g)!;
-    for (const c of all) expect(c).toMatch(/^"#[0-9A-Fa-f]{6}"$/);
+    for (const c of all) expect(c).toMatch(/^"#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?"$/);
+  });
+  it('has a translucent scrim in both schemes', () => {
+    for (const scheme of ['light', 'dark'] as const) expect(theme.colors[scheme].scrim).toMatch(/^#[0-9A-Fa-f]{8}$/);
   });
 });
 
