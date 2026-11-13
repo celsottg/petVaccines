@@ -2,7 +2,7 @@
 
 [🇧🇷 Português](privacy-policy.md) · 🇺🇸 English
 
-The app interface is in Brazilian Portuguese. This is the English version of the [Portuguese policy](privacy-policy.md); both say the same thing.
+This is the English version of the [Portuguese policy](privacy-policy.md); both say the same thing.
 
 **Effective date:** [FILL IN: date this version takes effect, before publishing]
 
@@ -25,11 +25,22 @@ Everything you type or photograph in the app is stored only in the app's interna
 
 The app does not send this data to anyone and has no way to read it from outside the device.
 
-## Device permissions and what they are for
+## Device permissions
 
-- **Camera.** Requested only when you tap **Tirar foto** (Take photo), to photograph a vaccination receipt or a pet's photo. The photo is stored on your device. If you refuse, the app keeps working and you can choose a photo from the gallery.
-- **Photo library.** The app uses the system photo picker when you tap **Escolher da galeria** (Choose from gallery). The app only receives the image you choose, and does not ask permission to see your gallery.
-- **Notifications.** Requested after you save the first vaccination that has a next-dose date, to warn you of the due date. Reminders are **local notifications**, scheduled by the device itself at 09:00: there is no server-based (push) notification service and nothing leaves the device. A reminder's text contains the pet's name and the vaccine name and is shown according to your device's notification and lock-screen settings. If you refuse the permission, the app keeps working, without reminders.
+**What the app asks you for, and when.**
+
+- **Camera.** Requested when you tap **Tirar foto** (Take photo), to photograph a vaccination receipt or a pet's photo. The photo is stored on your device. If you refuse, the app keeps working and you can choose a photo from the gallery.
+- **Notifications.** On Android 13 or later, requested after you save the first vaccination that has a next-dose date, to warn you of the due date. On earlier versions the system does not ask. Reminders are **local notifications**, scheduled by the device itself at 09:00: there is no server-based (push) notification service and nothing leaves the device. A reminder's text contains the pet's name and the vaccine name and is shown according to your device's notification and lock-screen settings. If you refuse, the app keeps working, without reminders.
+- **Photo gallery.** The app does not request access to your gallery while you use it. When you tap **Escolher da galeria** (Choose from gallery), the system photo picker opens and hands the app only the image you chose.
+
+**What the installed app declares without asking you.** Android shows the list of permissions an app declares, including ones that never trigger a question. From the declarations of the libraries the app uses, this is the expected list; it will be checked against the production build before the release:
+
+- `INTERNET`: declared by the app's framework and by file and image libraries. The app's code makes no network request.
+- `ACCESS_NETWORK_STATE`: declared by the image library. The app only displays images that are on the device itself.
+- Legacy storage access (`READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE`, applying only on Android 12 and earlier): declared by the photo and file libraries. The app's code does not request them.
+- `RECEIVE_BOOT_COMPLETED` and `POST_NOTIFICATIONS`: declared by the notifications library, so that scheduled reminders survive a device restart and so that notifications can be shown.
+- `VIBRATE`: declared by the framework's base template, used by the system for notifications; the app's code does not trigger vibration.
+- `SYSTEM_ALERT_WINDOW`: also comes from the framework's base template; the app's code does not use it.
 
 The app does not use location, microphone, contacts or any other device feature to collect information.
 
@@ -44,14 +55,9 @@ Each photo you add is scaled down (the longer side is at most 2048 pixels) and s
 - Both files leave the device **only if you choose**, in the system share menu (for example, e-mail, WhatsApp, Google Drive or Files). From then on the file is under the control of the app or person that received it, and this policy does not apply to them. Choose carefully where you send it and where you keep the backup.
 - When you **restore** a backup, you choose the file with the system picker and the app reads it on the device itself. Nothing is sent.
 
-## Android system backup
-
-Android may, when the system backup feature is turned on on your device, copy app data to your Google account. This is done by the operating system and controlled by you in the device settings, not by Vacinas do Pet, which has no access to that copy and does not send it.
-<!-- Remove this section if android.allowBackup becomes false in app.json. -->
-
 ## How to delete your data
 
-Uninstalling the app or clearing its data in Android settings deletes the pets, vaccinations, photos and preferences from the device. The app keeps no copy on a server, so the data can only be recovered from a backup file that **you** have kept (or from a system copy, if one exists, as described in the previous section). PDF and backup files you already sent elsewhere are not deleted along with the app.
+Uninstalling the app or clearing its data in Android settings deletes the pets, vaccinations, photos and preferences from the device. The app keeps no copy on a server and does not allow the Android system to copy its data to the cloud, so the data can only be recovered from a backup file that **you** have kept. PDF and backup files you already sent elsewhere are not deleted along with the app.
 
 ## Links that leave the app
 
