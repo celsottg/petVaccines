@@ -38,7 +38,13 @@ Outras formas de instalar: [documentação do Maestro](https://docs.maestro.dev/
    adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/foto.jpg
    ```
 
-   Abra o app Fotos do emulador e confirme que a imagem aparece.
+   Confirmar que a imagem está na galeria é opcional, mas poupa tempo se o fluxo falhar no seletor: abra o app Fotos do emulador, ou confira pela linha de comando que o sistema registrou o arquivo:
+
+   ```bash
+   adb shell content query --uri content://media/external/images/media --projection _id:_display_name | grep foto.jpg
+   ```
+
+   Se a linha não aparecer, rode de novo o `am broadcast` acima ou reinicie o emulador.
 
 ## 3. Instalar o app no emulador
 
@@ -53,6 +59,8 @@ ou o perfil `preview` do EAS (gera um APK instalável com `adb install`):
 ```bash
 npx eas-cli@latest build -p android --profile preview
 ```
+
+O `launchApp` do Maestro concede as permissões do app por padrão, então o diálogo de notificações normalmente nem aparece; o fluxo ainda tem uma espera opcional e limitada por ele.
 
 Se preferir o *development build* (`npx expo run:android`), conecte-o ao servidor do Metro à mão e adapte o início do fluxo; isso não foi preparado nem testado aqui.
 

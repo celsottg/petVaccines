@@ -46,10 +46,14 @@ env:
 - tapOn: "Adicionar pet"
 
 # 4. Pet form (src/components/PetForm.tsx).
-#    "Nome": pets.form.name (also the TextInput accessibilityLabel).
+#    The text input is targeted by id, because the label Text and the TextInput
+#    both read "Nome" (pets.form.name). FormField.tsx gives every input
+#    testID "input-" + the label without accents ("input-nome"); tests in
+#    src/components/FormField.test.tsx.
 #    "Cão": pets.species.dog (ChoiceChips radio; "dog" is already the default,
 #    tapping it makes the intent explicit).
-- tapOn: "Nome"
+- tapOn:
+    id: "input-nome"
 - inputText: "Thor"
 - hideKeyboard
 - tapOn: "Cão"
@@ -83,16 +87,17 @@ env:
 # 8. Save. Key: vaccinations.form.save (footer Button).
 - tapOn: "Salvar"
 
-# 9. The first record with a next dose makes the app ask for the notification
-#    permission (ensureNotificationPermission). On Android 13+ the system
-#    dialog appears; dismiss it by allowing. The button text is the system's:
-#    "Allow" (English images) or "Permitir" (Portuguese images). Skipped when
-#    the dialog does not appear.
-- runFlow:
-    when:
-      visible: "Allow|Permitir"
-    commands:
-      - tapOn: "Allow|Permitir"
+# 9. Notification permission. The request is made asynchronously after "Salvar"
+#    (ensureNotificationPermission), only on Android 13+, and only while the
+#    permission is undetermined. Maestro's launchApp grants permissions by
+#    default (docs: "permissions are allowed by default"), in which case no
+#    dialog appears. As a bounded fallback, tapOn waits for the system button
+#    (text is the system's: "Allow" or "Permitir") and, being optional, lets the
+#    flow go on when it never shows up (Android 12 and earlier, or already
+#    granted). It cannot hang and is not an immediate one-shot check.
+- tapOn:
+    text: "Allow|Permitir"
+    optional: true
 
 # 10. Back in the wallet, the new card (src/components/VaccinationCard.tsx).
 #     The card is one Pressable whose accessibilityLabel joins name, dates and

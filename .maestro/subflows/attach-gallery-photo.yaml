@@ -31,11 +31,9 @@ appId: com.simplifica.petvaccines
     text: "(Photo taken|Foto tirada|Photo|Foto).*"
     index: 0
 # Some pickers need an explicit confirmation after selecting.
-- runFlow:
-    when:
-      visible: "Add|Adicionar|Done|Concluído|Select|Selecionar"
-    commands:
-      - tapOn: "Add|Adicionar|Done|Concluído|Select|Selecionar"
+- tapOn:
+    text: "Add|Adicionar|Done|Concluído|Select|Selecionar"
+    optional: true
 
 # Back in the app the photo is resized and re-encoded, then shown as a pending
 # thumbnail. Key: photos.pendingThumbnail ("Foto 1 de 1, ainda não salva. ...")
