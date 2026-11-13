@@ -40,6 +40,8 @@ const withData = (data: BackupData = sampleBackup()) => ({
   [`photos/${PROOF}`]: 10,
 });
 
+afterEach(() => jest.restoreAllMocks());
+
 beforeEach(() => {
   jest.clearAllMocks();
   fakeFs.reset();
@@ -159,6 +161,18 @@ describe('Backup screen: restore', () => {
     expect(screen.queryByRole('button', { name: 'Restaurar' })).toBeNull();
   });
 
+  it('uses the plural in the warning when the device holds several pets and vaccinations', async () => {
+    existingPet();
+    const second = createPet(db, { name: 'Outro', species: 'cat' });
+    createVaccination(db, { petId: second.id, vaccineName: 'A', appliedOn: '2026-02-01' });
+    createVaccination(db, { petId: second.id, vaccineName: 'B', appliedOn: '2026-03-01' });
+    await renderBackup();
+
+    await fireEvent.press(importButton());
+
+    expect(await screen.findByText(/agora \(2 pets e 3 vacinas\) será substituído/)).toBeOnTheScreen();
+  });
+
   it('tells how many photos are missing in the summary and after the restore', async () => {
     zipContent = { 'data.json': JSON.stringify(sampleBackup()) };
     await renderBackup();
@@ -219,7 +233,6 @@ describe('Backup screen: restore', () => {
     expect(apply).toHaveBeenCalledTimes(1);
     expect(db.select().from(pets).all()).toHaveLength(2);
     expect(alertSpy).toHaveBeenCalledTimes(1);
-    apply.mockRestore();
   });
 
   it('says nothing was changed when the restore fails, and keeps the old data', async () => {

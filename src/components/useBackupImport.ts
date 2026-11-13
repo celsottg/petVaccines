@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { t } from '@/i18n';
 import { BackupError, applyBackup, discardBackupPreview, pickAndReadBackup, type BackupPreview } from '@/services/backup/import';
@@ -16,6 +16,18 @@ const readMessage = (failure: unknown) =>
 export function useBackupImport() {
   const [preview, setPreview] = useState<BackupPreview | null>(null);
   const confirming = useRef(false);
+  // The latest pending summary, for the unmount cleanup below.
+  const pending = useRef<BackupPreview | null>(null);
+  useEffect(() => {
+    pending.current = preview;
+  }, [preview]);
+  useEffect(
+    () => () => {
+      // Leaving the screen with a summary pending: drop the extracted files (a running restore keeps its own).
+      if (pending.current && !confirming.current) discardBackupPreview(pending.current);
+    },
+    [],
+  );
   const reading = useBusyAction(pickAndReadBackup, readMessage);
   const applying = useBusyAction(async () => {
     await applyBackup(preview!);
