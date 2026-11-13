@@ -29,6 +29,26 @@ describe('app.json (Task 1, Step 2)', () => {
   });
 });
 
+describe('app.json photo permissions (Task 7)', () => {
+  const { expo } = json('app.json');
+  const picker = expo.plugins.find((plugin: unknown) => Array.isArray(plugin) && plugin[0] === 'expo-image-picker');
+
+  it('configures expo-image-picker with Portuguese texts that say the photos stay on the device', () => {
+    expect(picker).toBeDefined();
+    const { cameraPermission, photosPermission } = picker[1];
+    expect(cameraPermission).toMatch(/c[âa]mera/i);
+    expect(photosPermission).toMatch(/fotos/i);
+    for (const text of [cameraPermission, photosPermission]) {
+      expect(text).toMatch(/comprovante/i);
+      expect(text).toMatch(/aparelho/i);
+    }
+  });
+
+  it('does not ask for the microphone: no video is recorded', () => {
+    expect(picker[1].microphonePermission).toBe(false);
+  });
+});
+
 describe('tsconfig.json', () => {
   it('has strict mode enabled', () => {
     expect(json('tsconfig.json').compilerOptions.strict).toBe(true);

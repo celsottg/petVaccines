@@ -35,7 +35,15 @@
         }
       ],
       "expo-localization",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "A câmera é usada só para fotografar o comprovante de vacinação e a foto do pet. As fotos ficam guardadas no seu aparelho.",
+          "photosPermission": "As fotos da galeria são usadas só para anexar o comprovante de vacinação e a foto do pet. Elas ficam guardadas no seu aparelho.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
