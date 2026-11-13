@@ -23,7 +23,7 @@ export default function EditPetScreen() {
   const guard = useGuardedAction();
 
   // Also covers the moment right after the pet is deleted, before navigation finishes.
-  if (!pet) return loaded && !leaving ? <NotFound /> : null;
+  if (!pet || pet.status !== 'active') return loaded && !leaving ? <NotFound /> : null;
 
   return (
     <>

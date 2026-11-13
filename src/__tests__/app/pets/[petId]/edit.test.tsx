@@ -6,7 +6,7 @@ import { View } from 'react-native';
 import HomeScreen from '@/app/index';
 import EditPetScreen from '@/app/pets/[petId]/edit';
 import WalletScreen from '@/app/pets/[petId]/index';
-import { createPet } from '@/data/pets';
+import { archivePet, createPet } from '@/data/pets';
 import { newPet } from '@/data/testHelpers';
 import { createVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
@@ -150,5 +150,19 @@ describe('Editar pet screen', () => {
     expect(allPets()).toEqual([]);
     expect(screen.queryByText('Não encontramos este item')).toBeNull();
     jest.restoreAllMocks();
+  });
+
+  it('does not edit, archive or delete a pet with the wallet closed', async () => {
+    const pet = newPet(db, { name: 'Rex' });
+    archivePet(db, pet.id, 'other', null);
+    const before = allPets()[0];
+
+    await renderEdit(pet.id);
+
+    expect(screen.getByText('Não encontramos este item')).toBeOnTheScreen();
+    for (const name of ['Salvar', 'Dar baixa', 'Excluir pet']) {
+      expect(screen.queryByRole('button', { name })).toBeNull();
+    }
+    expect(allPets()[0]).toEqual(before);
   });
 });

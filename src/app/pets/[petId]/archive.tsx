@@ -32,9 +32,10 @@ export default function ArchivePetScreen() {
   const [date, setDate] = useState('');
   const [dateError, setDateError] = useState<string>();
   const [reasonError, setReasonError] = useState<string>();
+  const [leaving, setLeaving] = useState(false);
   const guard = useGuardedAction();
 
-  if (!pet) return loaded ? <NotFound /> : null;
+  if (!pet || pet.status !== 'active') return loaded && !leaving ? <NotFound /> : null;
 
   function confirm() {
     if (!pet) return;
@@ -49,7 +50,10 @@ export default function ArchivePetScreen() {
       return;
     }
     guard.run(() => archivePet(db, pet.id, result.data.reason, result.data.on), {
-      onSuccess: () => router.dismissTo('/'),
+      onSuccess: () => {
+        setLeaving(true);
+        router.dismissTo('/');
+      },
     });
   }
 
