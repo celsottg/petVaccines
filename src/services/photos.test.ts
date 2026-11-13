@@ -1,12 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 
-import { ATTACHMENT_LIMIT } from '@/data/attachments';
-import { createTestDb } from '@/data/testDb';
-import { newAttachment, newPet, newVaccination } from '@/data/testHelpers';
-import { attachments } from '@/db/schema';
-
 import { fakeFs } from './fakeFileSystem';
-import { captureAttachment, preparePetPhoto, preparePhoto } from './photos';
+import { preparePetPhoto, preparePhoto } from './photos';
 
 jest.mock('expo-file-system', () => jest.requireActual('./fakeFileSystem').fakeModule);
 jest.mock('expo-image-picker', () => ({
@@ -17,6 +12,13 @@ jest.mock('expo-image-picker', () => ({
 
 const mockContext = { resize: jest.fn(), renderAsync: jest.fn() };
 const mockSaveAsync = jest.fn();
+// The real (rotation-applied) size of the image behind the picked uri; resize actions apply to it in order.
+let mockReal = { width: 0, height: 0 };
+function mockResize({ width, height }: { width?: number; height?: number }) {
+  const ratio = width ? width / mockReal.width : (height as number) / mockReal.height;
+  mockReal = { width: Math.round(mockReal.width * ratio), height: Math.round(mockReal.height * ratio) };
+  return mockContext;
+}
 jest.mock('expo-image-manipulator', () => ({
   ImageManipulator: { manipulate: (...args: unknown[]) => mockManipulate(...args) },
   SaveFormat: { JPEG: 'jpeg', PNG: 'png', WEBP: 'webp' },
@@ -28,7 +30,8 @@ const PHOTOS = 'file:///docs/photos';
 const PETS = 'file:///docs/pets';
 const ORIGINAL = 'file:///cache/ImagePicker/original.heic';
 
-function pick(width: number, height: number) {
+function pick(width: number, height: number, real = { width, height }) {
+  mockReal = { ...real };
   fakeFs.addFile(ORIGINAL, 9_000_000);
   const result = { canceled: false, assets: [{ uri: ORIGINAL, width, height }] } as ImagePicker.ImagePickerResult;
   picker.launchCameraAsync.mockResolvedValue(result);
@@ -40,11 +43,11 @@ beforeEach(() => {
   fakeFs.reset();
   picker.requestCameraPermissionsAsync.mockResolvedValue({ granted: true } as ImagePicker.PermissionResponse);
   mockManipulate.mockReturnValue(mockContext);
-  mockContext.resize.mockReturnValue(mockContext);
-  mockContext.renderAsync.mockResolvedValue({ saveAsync: mockSaveAsync });
+  mockContext.resize.mockImplementation(mockResize);
+  mockContext.renderAsync.mockImplementation(async () => ({ ...mockReal, saveAsync: mockSaveAsync }));
   mockSaveAsync.mockImplementation(async () => {
     fakeFs.addFile('file:///cache/ImageManipulator/out.jpg', 345_678);
-    return { uri: 'file:///cache/ImageManipulator/out.jpg', width: 2048, height: 1536 };
+    return { uri: 'file:///cache/ImageManipulator/out.jpg', ...mockReal };
   });
 });
 
@@ -127,6 +130,46 @@ describe('preparePhoto', () => {
     expect(fakeFs.has('file:///cache/ImageManipulator/out.jpg')).toBe(false);
   });
 
+  it('enforces 2048 px on the image actually produced when the picker reports swapped dimensions', async () => {
+    // The picker says 4000x3000 but the rotation-applied image is 3000x4000.
+    pick(4000, 3000, { width: 3000, height: 4000 });
+
+    const photo = await preparePhoto('camera');
+
+    expect(Math.max(photo?.width ?? 0, photo?.height ?? 0)).toBeLessThanOrEqual(2048);
+    expect(photo).toEqual(expect.objectContaining({ width: 1536, height: 2048 }));
+  });
+
+  it('resizes an image the picker reported as small when it is really larger than the limit', async () => {
+    pick(1000, 800, { width: 4000, height: 3000 });
+
+    const photo = await preparePhoto('library');
+
+    expect(photo).toEqual(expect.objectContaining({ width: 2048, height: 1536 }));
+  });
+
+  it('does not resize twice when the first resize already fits', async () => {
+    pick(4096, 3072);
+
+    await preparePhoto('library');
+
+    expect(mockContext.resize).toHaveBeenCalledTimes(1);
+  });
+
+  it('never deletes a picked original that lives outside the cache (the user own library file)', async () => {
+    const library = 'file:///storage/DCIM/photo.jpg';
+    fakeFs.addFile(library, 9_000_000);
+    picker.launchImageLibraryAsync.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: library, width: 800, height: 600 }],
+    } as ImagePicker.ImagePickerResult);
+
+    await preparePhoto('library');
+
+    expect(fakeFs.has(library)).toBe(true);
+    expect(fakeFs.has('file:///cache/ImageManipulator/out.jpg')).toBe(false);
+  });
+
   it('leaves no file behind and throws when processing fails', async () => {
     pick(4096, 3072);
     mockContext.renderAsync.mockRejectedValue(new Error('out of memory'));
@@ -145,45 +188,6 @@ describe('preparePetPhoto', () => {
     const photo = await preparePetPhoto('library');
 
     expect(fakeFs.names(PETS)).toEqual([photo?.file]);
-    expect(fakeFs.names(PHOTOS)).toEqual([]);
-  });
-});
-
-describe('captureAttachment', () => {
-  it('stores the file and inserts the attachment row for the record', async () => {
-    const db = createTestDb();
-    const vaccination = newVaccination(db, newPet(db).id);
-    pick(4096, 3072);
-
-    const attachment = await captureAttachment(db, vaccination.id, 'camera');
-
-    expect(attachment).toEqual(
-      expect.objectContaining({ vaccinationId: vaccination.id, sizeBytes: 345_678, width: 2048, height: 1536 }),
-    );
-    expect(attachment?.file).toBe(`${attachment?.id}.jpg`);
-    expect(db.select().from(attachments).all()).toHaveLength(1);
-    expect(fakeFs.names(PHOTOS)).toEqual([attachment?.file]);
-  });
-
-  it('returns null and writes nothing when the user cancels', async () => {
-    const db = createTestDb();
-    const vaccination = newVaccination(db, newPet(db).id);
-    picker.launchImageLibraryAsync.mockResolvedValue({ canceled: true, assets: null });
-
-    await expect(captureAttachment(db, vaccination.id, 'library')).resolves.toBeNull();
-
-    expect(db.select().from(attachments).all()).toEqual([]);
-  });
-
-  it('removes the stored file when the record is already at the limit of 3', async () => {
-    const db = createTestDb();
-    const vaccination = newVaccination(db, newPet(db).id);
-    for (let i = 0; i < 3; i += 1) newAttachment(db, vaccination.id);
-    pick(1000, 800);
-
-    await expect(captureAttachment(db, vaccination.id, 'library')).rejects.toThrow(ATTACHMENT_LIMIT);
-
-    expect(db.select().from(attachments).all()).toHaveLength(3);
     expect(fakeFs.names(PHOTOS)).toEqual([]);
   });
 });

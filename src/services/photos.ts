@@ -3,10 +3,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
-import { addAttachment } from '@/data/attachments';
-import type { Attachment, Db } from '@/data/types';
-
-import { deleteFiles, PETS_DIR, PHOTOS_DIR } from './files';
+import { PETS_DIR, PHOTOS_DIR } from './files';
 import { fitWithin } from './imageSize';
 
 export type PhotoSource = 'camera' | 'library';
@@ -62,11 +59,18 @@ async function prepare(source: PhotoSource, dirName: string, options: PhotoOptio
 
   let processedUri: string | undefined;
   try {
-    const { width, height, resized } = fitWithin(asset.width, asset.height);
     const context = ImageManipulator.manipulate(asset.uri);
     // One dimension is enough: the other follows the aspect ratio. Smaller images are not resized.
-    if (resized) context.resize(width >= height ? { width } : { height });
-    const rendered = await context.renderAsync();
+    const reported = fitWithin(asset.width, asset.height);
+    if (reported.resized) context.resize(reported.width >= reported.height ? { width: reported.width } : { height: reported.height });
+    let rendered = await context.renderAsync();
+    // The picker's size can be swapped relative to the rotation-applied image, so the limit is
+    // checked again on what was actually produced and the resize continues from there.
+    const produced = fitWithin(rendered.width, rendered.height);
+    if (produced.resized) {
+      context.resize(produced.width >= produced.height ? { width: produced.width } : { height: produced.height });
+      rendered = await context.renderAsync();
+    }
     const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: JPEG_QUALITY });
     processedUri = saved.uri;
 
@@ -96,22 +100,4 @@ export function preparePhoto(source: PhotoSource, options: PhotoOptions = {}): P
 /** Same as `preparePhoto`, stored as `pets/<id>.jpg` (the pet's profile photo). */
 export function preparePetPhoto(source: PhotoSource, options: PhotoOptions = {}): Promise<PreparedPhoto | null> {
   return prepare(source, PETS_DIR, options);
-}
-
-/** `preparePhoto` plus the attachment row of an existing vaccination record. */
-export async function captureAttachment(
-  db: Db,
-  vaccinationId: string,
-  source: PhotoSource,
-  options: PhotoOptions = {},
-): Promise<Attachment | null> {
-  const photo = await preparePhoto(source, options);
-  if (!photo) return null;
-  try {
-    return addAttachment(db, { ...photo, vaccinationId });
-  } catch (error) {
-    // No row points to the file, so it must not stay on disk.
-    await deleteFiles([photo.file]);
-    throw error;
-  }
 }
