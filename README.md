@@ -1,56 +1,53 @@
-# Welcome to your Expo app 👋
+# Vacinas do Pet
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+🇧🇷 Português · [🇺🇸 English](README.en.md)
 
-## Get started
+App móvel de código aberto para guardar a carteira de vacinação de cães e gatos, com a foto do comprovante de cada dose e lembretes da próxima.
 
-1. Install dependencies
+- **100% local:** sem conta, sem login, sem servidor. Os dados ficam só no seu aparelho e o app funciona em modo avião.
+- **Sem anúncios, rastreamento ou analytics.**
+- Feito com [Expo](https://expo.dev) e React Native, para Android e iOS.
 
-   ```bash
-   npm install
-   ```
+> **Status:** em desenvolvimento (MVP). Veja o [design do MVP](docs/superpowers/specs/2026-11-12-pet-vaccines-design.md) e o [plano de implementação](docs/superpowers/plans/2026-11-12-pet-vaccines-mvp.md).
 
-2. Start the app
+## O que o app faz
 
-   ```bash
-   npx expo start
-   ```
+- Cadastro de pets (cães e gatos), com foto.
+- Registro de vacinas: data, próxima dose, lote, marca, veterinário, CRMV, clínica e observações.
+- Até 3 fotos de comprovante por registro.
+- Status de cada vacina: em dia, vence em breve, vencida.
+- Sugestão da próxima dose a partir de um catálogo brasileiro de vacinas.
+- Lembretes por notificação local 7 dias antes e no dia.
+- Exportação da carteira em PDF e backup em arquivo `.zip`.
 
-In the output, you'll find options to open the app in a
+> O registro é declaratório, feito pelo tutor. Não substitui a carteira de vacinação emitida pelo veterinário.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Como rodar
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Pré-requisitos: [Node.js](https://nodejs.org) LTS e um emulador Android/iOS ou um aparelho.
 
 ```bash
-npm run reset-project
+git clone https://github.com/celsottg/petVaccines.git
+cd petVaccines
+npm ci
+npx expo run:android   # ou: npx expo run:ios
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+O app usa bibliotecas nativas que não existem no Expo Go, por isso roda em um [development build](https://docs.expo.dev/develop/development-builds/introduction/). Também é possível gerá-lo na nuvem com `npx eas-cli@latest build --profile development`.
 
-### Other setup steps
+### Comandos úteis
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+| Comando | O que faz |
+|---|---|
+| `npm test` | testes (Jest), no fuso `America/Sao_Paulo` |
+| `npm run lint` | lint (ESLint) |
+| `npm run typecheck` | checagem de tipos (TypeScript) |
+| `npx expo start` | servidor de desenvolvimento |
 
-## Learn more
+## Como contribuir
 
-To learn more about developing your project with Expo, look at the following resources:
+Contribuições são muito bem-vindas, inclusive sem programar: sugerir vacinas para o catálogo, revisar textos e traduzir. Leia o [guia de contribuição](CONTRIBUTING.md) e o [código de conduta](CODE_OF_CONDUCT.md).
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Licença
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+[GPLv3](LICENSE).

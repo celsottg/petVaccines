@@ -364,8 +364,8 @@ Como o sucesso é medido por contribuidores, estes itens fazem parte do MVP. **[
 ### Estrutura sugerida
 
 ```
-app/                  rotas do Expo Router
 src/
+  app/                rotas do Expo Router (testes de tela em src/__tests__/app/)
   db/                 schema do Drizzle, migrações, cliente
   domain/             regras puras: status, registro vigente, próxima dose, lembretes
   services/           fotos, notificações, PDF, backup

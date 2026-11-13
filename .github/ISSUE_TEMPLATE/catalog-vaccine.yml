@@ -1,0 +1,61 @@
+name: Vacina no catálogo
+description: Propor a inclusão ou a correção de uma vacina no catálogo. Não precisa programar.
+labels: ["catalog"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        O catálogo sugere a data da próxima dose. Toda proposta é revisada por uma veterinária antes do release.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Tipo de proposta
+      options:
+        - Incluir uma vacina nova
+        - Corrigir uma vacina existente
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Nome da vacina
+      description: Como aparece na carteirinha do pet.
+      placeholder: "Ex.: Antirrábica"
+    validations:
+      required: true
+  - type: dropdown
+    id: species
+    attributes:
+      label: Espécie
+      options:
+        - Cão
+        - Gato
+    validations:
+      required: true
+  - type: input
+    id: interval
+    attributes:
+      label: Intervalo de reforço usual
+      placeholder: "Ex.: 1 ano"
+    validations:
+      required: true
+  - type: dropdown
+    id: country
+    attributes:
+      label: País
+      options:
+        - Brasil
+        - Outro (informe abaixo)
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Fonte
+      description: Bula, orientação veterinária, referência técnica ou link.
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Observações

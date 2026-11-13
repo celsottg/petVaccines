@@ -1,0 +1,55 @@
+name: Bug
+description: Algo não funciona como deveria.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por relatar! Antes de enviar, procure se já existe uma issue parecida.
+        **Não envie fotos de comprovantes nem dados pessoais seus ou do seu pet.**
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu?
+      description: Descreva o problema.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir
+      placeholder: |
+        1. Abra a carteira do pet
+        2. Toque em "Nova vacina"
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que você esperava que acontecesse?
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Sistema
+      options:
+        - Android
+        - iOS
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Aparelho e versão do sistema
+      placeholder: "Ex.: Moto G54, Android 14"
+  - type: input
+    id: version
+    attributes:
+      label: Versão do app
+      description: Aparece em Ajustes → Sobre.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Capturas de tela ou informações extras

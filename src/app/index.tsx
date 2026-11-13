@@ -1,98 +1,52 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Stack } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { t } from '@/i18n';
+import { useTheme } from '@/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+export default function PetsScreen() {
+  const { colors, spacing, radius, typography } = useTheme();
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
-
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
+      <Stack.Screen options={{ headerShown: false, title: t('pets.title') }} />
+      <ScrollView contentContainerStyle={[styles.content, { padding: spacing.lg, gap: spacing.md }]}>
+        <Text accessibilityRole="header" style={[typography.title, { color: colors.text }]}>
+          {t('pets.title')}
+        </Text>
+        <View style={[styles.empty, { gap: spacing.sm, paddingVertical: spacing.xl }]}>
+          <Text style={[typography.subtitle, styles.center, { color: colors.text }]}>
+            {t('pets.empty.title')}
+          </Text>
+          <Text style={[typography.body, styles.center, { color: colors.textSecondary }]}>
+            {t('pets.empty.description')}
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          // Navigation to the pet form is wired in Task 5, when the route exists.
+          onPress={() => {}}
+          style={({ pressed }) => [
+            styles.button,
+            {
+              backgroundColor: colors.primary,
+              borderRadius: radius.md,
+              paddingVertical: spacing.md,
+              opacity: pressed ? 0.85 : 1,
+            },
+          ]}>
+          <Text style={[typography.label, { color: colors.onPrimary }]}>{t('pets.add')}</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+  flex: { flex: 1 },
+  content: { flexGrow: 1 },
+  empty: { alignItems: 'center' },
+  center: { textAlign: 'center' },
+  button: { alignItems: 'center' },
 });

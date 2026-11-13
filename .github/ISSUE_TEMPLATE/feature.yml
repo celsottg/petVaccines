@@ -1,0 +1,30 @@
+name: Sugestão
+description: Uma ideia de melhoria, nova função, tradução ou dúvida.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        O app é 100% local: não terá conta, login, servidor, anúncios nem analytics.
+        Sugestões que dependam disso ficam fora do escopo do projeto.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema a sugestão resolve?
+      placeholder: "Ex.: Eu sempre esqueço de..."
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Como você imagina a solução?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas que você considerou
+  - type: textarea
+    id: extra
+    attributes:
+      label: Informações extras

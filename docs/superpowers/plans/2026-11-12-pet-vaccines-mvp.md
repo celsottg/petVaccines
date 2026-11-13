@@ -4,7 +4,7 @@
 
 **Goal:** Entregar o MVP do app "Vacinas do Pet": carteira de vacinação de cães e gatos, 100% local, com comprovantes em foto, lembretes, PDF e backup em `.zip`.
 
-**Architecture:** App Expo sem servidor. As regras de negócio são funções puras em `src/domain/` (testadas com Jest, sem React nem banco). O acesso a dados fica em `src/data/`, sobre SQLite com Drizzle. Fotos, notificações, PDF e backup são serviços em `src/services/`. As telas em `app/` só leem com `useLiveQuery` e chamam `data/` e `services/`.
+**Architecture:** App Expo sem servidor. As regras de negócio são funções puras em `src/domain/` (testadas com Jest, sem React nem banco). O acesso a dados fica em `src/data/`, sobre SQLite com Drizzle. Fotos, notificações, PDF e backup são serviços em `src/services/`. As telas em `src/app/` só leem com `useLiveQuery` e chamam `data/` e `services/`.
 
 **Tech Stack:** Expo (SDK estável mais recente) + TypeScript `strict`, Expo Router, `expo-sqlite` + Drizzle ORM, React Hook Form + Zod, `expo-notifications` (local), `expo-print`, `react-native-zip-archive`, i18next, Jest + React Native Testing Library, Maestro.
 
@@ -40,21 +40,21 @@ Condições que a spec implica, mas que nenhum critério dela exercita. Cada uma
 ## File Structure
 
 ```
-app/
-  _layout.tsx                    providers, migrações, syncReminders na abertura
-  index.tsx                      tela 1: Meus pets
-  archived.tsx                   tela 5: Carteiras encerradas
-  backup.tsx                     tela 9
-  settings.tsx                   tela 10
-  pets/new.tsx                   tela 2 (criação)
-  pets/[petId]/index.tsx         tela 4: Carteira do pet
-  pets/[petId]/edit.tsx          tela 2 (edição)
-  pets/[petId]/archive.tsx       tela 3
-  vaccinations/new.tsx           tela 6 (criação; params petId, fromVaccinationId?)
-  vaccinations/[id]/index.tsx    tela 7
-  vaccinations/[id]/edit.tsx     tela 6 (edição)
-  attachments/[id].tsx           tela 8
 src/
+  app/                             rotas do Expo Router (só telas e _layout)
+    _layout.tsx                    providers, migrações, syncReminders na abertura
+    index.tsx                      tela 1: Meus pets
+    archived.tsx                   tela 5: Carteiras encerradas
+    backup.tsx                     tela 9
+    settings.tsx                   tela 10
+    pets/new.tsx                   tela 2 (criação)
+    pets/[petId]/index.tsx         tela 4: Carteira do pet
+    pets/[petId]/edit.tsx          tela 2 (edição)
+    pets/[petId]/archive.tsx       tela 3
+    vaccinations/new.tsx           tela 6 (criação; params petId, fromVaccinationId?)
+    vaccinations/[id]/index.tsx    tela 7
+    vaccinations/[id]/edit.tsx     tela 6 (edição)
+    attachments/[id].tsx           tela 8
   domain/    dates.ts status.ts current.ts nextDose.ts validation.ts reminders.ts backupWarning.ts
   db/        schema.ts client.ts migrations/
   data/      pets.ts vaccinations.ts attachments.ts settings.ts types.ts
@@ -65,14 +65,14 @@ src/
   components/ PetCard.tsx StatusBadge.tsx VaccinationCard.tsx FormField.tsx ConfirmDialog.tsx BackupBanner.tsx
 ```
 
-Testes ficam ao lado do arquivo testado, como `status.test.ts`.
+Testes ficam ao lado do arquivo testado, como `status.test.ts`. A exceção são as telas: todo arquivo em `src/app/` vira rota, então os testes de tela ficam em `src/__tests__/app/`, espelhando o caminho da rota (por exemplo, `src/app/pets/new.tsx` é testado em `src/__tests__/app/pets/new.test.tsx`).
 
 ---
 
 ### Task 1: Fundação do projeto
 
 **Files:**
-- Create: projeto Expo na raiz (preservando `docs/` e `.git`), `src/theme/index.ts`, `src/i18n/index.ts`, `src/i18n/pt-BR.json`, `app/_layout.tsx`, `app/index.tsx`
+- Create: projeto Expo na raiz (preservando `docs/` e `.git`), `src/theme/index.ts`, `src/i18n/index.ts`, `src/i18n/pt-BR.json`, `src/app/_layout.tsx`, `src/app/index.tsx`
 - Create: `LICENSE`, `README.md`, `README.en.md`, `CONTRIBUTING.md`, `CONTRIBUTING.en.md`, `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/{bug.yml,feature.yml,catalog-vaccine.yml}`, `.github/pull_request_template.md`, `.github/workflows/ci.yml`, `eas.json`
 
 **Interfaces:**
@@ -80,9 +80,9 @@ Testes ficam ao lado do arquivo testado, como `status.test.ts`.
 
 - [ ] **Step 1:** Conferir a SDK estável atual em expo.dev/changelog. Criar o projeto com `npx create-expo-app@latest` em uma pasta temporária e mover o conteúdo para a raiz, sem tocar em `docs/` e `.git`. Remover as telas de exemplo do template.
 - [ ] **Step 2:** Em `app.json`: `name` "Vacinas do Pet", `slug` "petvaccines", `android.package` e `ios.bundleIdentifier` iguais a `com.simplifica.petvaccines`, `userInterfaceStyle` "automatic". Ativar `strict` no `tsconfig.json`.
-- [ ] **Step 3:** Configurar Jest com `jest-expo` e React Native Testing Library, fixando `TZ=America/Sao_Paulo` no script de teste para que os testes de data rodem no fuso do público do app. Escrever o teste `app/index.test.tsx`: renderiza a tela inicial e encontra o texto `Meus pets`.
+- [ ] **Step 3:** Configurar Jest com `jest-expo` e React Native Testing Library, fixando `TZ=America/Sao_Paulo` no script de teste para que os testes de data rodem no fuso do público do app. Escrever o teste `src/__tests__/app/index.test.tsx`: renderiza a tela inicial e encontra o texto `Meus pets`.
 - [ ] **Step 4:** Rodar `npx jest`. Esperado: FAIL, a tela ainda não existe.
-- [ ] **Step 5:** Criar `src/theme/index.ts` (primária `#5B4BC4` no claro; pares de cor para `ok`, `dueSoon`, `overdue`, `neutral`), `src/i18n/` e `app/index.tsx` com o título vindo de `t('pets.title')` e um estado vazio com o botão "Adicionar pet".
+- [ ] **Step 5:** Criar `src/theme/index.ts` (primária `#5B4BC4` no claro; pares de cor para `ok`, `dueSoon`, `overdue`, `neutral`), `src/i18n/` e `src/app/index.tsx` com o título vindo de `t('pets.title')` e um estado vazio com o botão "Adicionar pet".
 - [ ] **Step 6:** Rodar `npx jest`, `npx tsc --noEmit` e `npx expo lint`. Esperado: tudo passa.
 - [ ] **Step 7:** Escrever os arquivos do projeto aberto. `README.md` (português, padrão) e `README.en.md` têm, no topo, um link um para o outro; o mesmo vale para `CONTRIBUTING.md` e `CONTRIBUTING.en.md`. O CONTRIBUTING explica como rodar o projeto, o padrão de commits, como propor uma vacina para o catálogo e como traduzir, sem exigir programação nos dois últimos. `LICENSE` é o texto integral da GPLv3.
 - [ ] **Step 8:** `ci.yml` roda, em cada PR e em `main`: `npm ci`, lint, typecheck e testes. `eas.json` com os perfis `development`, `preview` e `production`.
@@ -145,7 +145,7 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 
 **Files:**
 - Create: `src/db/schema.ts`, `src/db/client.ts`, `drizzle.config.ts`, `src/db/migrations/*`, `src/data/types.ts`, `src/data/pets.ts`, `vaccinations.ts`, `attachments.ts`, `settings.ts`, `src/data/testDb.ts`, `src/data/*.test.ts`
-- Modify: `app/_layout.tsx`
+- Modify: `src/app/_layout.tsx`
 
 **Interfaces:**
 - Consumes: `IsoDate` (Task 2).
@@ -171,7 +171,7 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 - [ ] **Step 4:** Rodar `npx jest src/data`. Esperado: FAIL.
 - [ ] **Step 5:** Implementar `data/`. Cada escrita roda em transação junto com `touchLastChange`.
 - [ ] **Step 6:** Rodar `npx jest src/data`. Esperado: PASS.
-- [ ] **Step 7:** Em `app/_layout.tsx`, aplicar as migrações com `useMigrations` antes de renderizar as rotas; em caso de falha, mostrar uma tela de erro com a mensagem.
+- [ ] **Step 7:** Em `src/app/_layout.tsx`, aplicar as migrações com `useMigrations` antes de renderizar as rotas; em caso de falha, mostrar uma tela de erro com a mensagem.
 - [ ] **Step 8:** Confirmar no development build que o app abre sem erro de migração.
 - [ ] **Step 9:** Commit: `feat(data): add sqlite schema, migrations and repositories`.
 
@@ -193,8 +193,8 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 ### Task 5: Telas de pets
 
 **Files:**
-- Create: `src/domain/validation.ts`, `validation.test.ts`, `src/components/{PetCard,StatusBadge,FormField,ConfirmDialog}.tsx`, `app/pets/new.tsx`, `app/pets/[petId]/edit.tsx`, `app/pets/[petId]/archive.tsx`, `app/archived.tsx`
-- Modify: `app/index.tsx`, `src/i18n/pt-BR.json`
+- Create: `src/domain/validation.ts`, `validation.test.ts`, `src/components/{PetCard,StatusBadge,FormField,ConfirmDialog}.tsx`, `src/app/pets/new.tsx`, `src/app/pets/[petId]/edit.tsx`, `src/app/pets/[petId]/archive.tsx`, `src/app/archived.tsx`
+- Modify: `src/app/index.tsx`, `src/i18n/pt-BR.json`
 
 **Interfaces:**
 - Consumes: `data/pets.ts`, `getStatus`, `worstStatus`, `splitCurrent`, `getSettings`.
@@ -212,7 +212,7 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 ### Task 6: Telas de vacinas
 
 **Files:**
-- Create: `src/components/VaccinationCard.tsx`, `app/pets/[petId]/index.tsx`, `app/vaccinations/new.tsx`, `app/vaccinations/[id]/index.tsx`, `app/vaccinations/[id]/edit.tsx`
+- Create: `src/components/VaccinationCard.tsx`, `src/app/pets/[petId]/index.tsx`, `src/app/vaccinations/new.tsx`, `src/app/vaccinations/[id]/index.tsx`, `src/app/vaccinations/[id]/edit.tsx`
 - Modify: `src/domain/validation.ts`, `validation.test.ts`, `src/i18n/pt-BR.json`
 
 **Interfaces:**
@@ -231,8 +231,8 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 ### Task 7: Fotos e comprovantes
 
 **Files:**
-- Create: `src/services/files.ts`, `files.test.ts`, `src/services/photos.ts`, `app/attachments/[id].tsx`
-- Modify: telas 2, 6 e 7; `app/_layout.tsx`; fluxos de exclusão das Tasks 5 e 6
+- Create: `src/services/files.ts`, `files.test.ts`, `src/services/photos.ts`, `src/app/attachments/[id].tsx`
+- Modify: telas 2, 6 e 7; `src/app/_layout.tsx`; fluxos de exclusão das Tasks 5 e 6
 
 **Interfaces:**
 - Consumes: `addAttachment`, `deleteAttachment`, `deletePet`, `deleteVaccination`.
@@ -251,8 +251,8 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 ### Task 8: Lembretes e ajustes
 
 **Files:**
-- Create: `src/domain/reminders.ts`, `reminders.test.ts`, `src/services/reminders.ts`, `app/settings.tsx`
-- Modify: `app/_layout.tsx`, tela 7, todas as escritas de pets e vacinas nas telas
+- Create: `src/domain/reminders.ts`, `reminders.test.ts`, `src/services/reminders.ts`, `src/app/settings.tsx`
+- Modify: `src/app/_layout.tsx`, tela 7, todas as escritas de pets e vacinas nas telas
 
 **Interfaces:**
 - Consumes: `splitCurrent`, `addDays`, `getSettings`, `setSetting`.
@@ -283,7 +283,7 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 
 **Files:**
 - Create: `src/services/pdf.ts`, `pdf.test.ts`
-- Modify: `app/pets/[petId]/index.tsx`
+- Modify: `src/app/pets/[petId]/index.tsx`
 
 **Interfaces:**
 - Produces: `buildCardHtml(input: { pet: Pet; vaccinations: Vaccination[]; photos: { vaccinationId: string; dataUri: string }[]; generatedOn: IsoDate; labels: Record<string, string> }): string` (pura) e `exportPetPdf(petId: string): Promise<void>`.
@@ -297,8 +297,8 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 ### Task 10: Backup — exportação e aviso
 
 **Files:**
-- Create: `src/services/backup/schema.ts`, `export.ts`, `src/domain/backupWarning.ts`, `backupWarning.test.ts`, `src/services/backup/export.test.ts`, `src/components/BackupBanner.tsx`, `app/backup.tsx`
-- Modify: `app/index.tsx`
+- Create: `src/services/backup/schema.ts`, `export.ts`, `src/domain/backupWarning.ts`, `backupWarning.test.ts`, `src/services/backup/export.test.ts`, `src/components/BackupBanner.tsx`, `src/app/backup.tsx`
+- Modify: `src/app/index.tsx`
 
 **Interfaces:**
 - Produces:
@@ -328,7 +328,7 @@ expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 
 **Files:**
 - Create: `src/services/backup/import.ts`, `import.test.ts`
-- Modify: `app/backup.tsx`, `src/services/backup/schema.ts`
+- Modify: `src/app/backup.tsx`, `src/services/backup/schema.ts`
 
 **Interfaces:**
 - Consumes: `backupSchema`, `CURRENT_SCHEMA_VERSION`, `removeOrphanFiles`, `syncReminders`.
