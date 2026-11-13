@@ -7,11 +7,13 @@ import { formatBrDate, maskBrDate, parseOptionalBrDate } from '@/domain/dateInpu
 import { todayLocal } from '@/domain/dates';
 import { petInputSchema } from '@/domain/validation';
 import { t } from '@/i18n';
-import { deleteFiles, petPhotoUri } from '@/services/files';
+import { discardFiles } from '@/services/discardFiles';
+import { petPhotoUri } from '@/services/files';
 import { preparePetPhoto } from '@/services/photos';
 import { useTheme } from '@/theme';
 
 import { Button } from './Button';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ChoiceChips } from './ChoiceChips';
 import { FormField } from './FormField';
 import { FormError } from './FormError';
@@ -44,6 +46,7 @@ export function PetForm({ pet, onSubmit, onSaved, children }: PetFormProps) {
   const [errors, setErrors] = useState<Errors>({});
   const guard = useGuardedAction();
   const [choosingPhoto, setChoosingPhoto] = useState(false);
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
   // The photo the pet had when the form opened. A different `photoFile` is a new file that no row points to yet.
   const [originalPhoto] = useState(pet?.photoFile ?? null);
   const [photoFile, setPhotoFile] = useState(originalPhoto);
@@ -54,19 +57,19 @@ export function PetForm({ pet, onSubmit, onSaved, children }: PetFormProps) {
   const saved = useRef(false);
   const picker = usePhotoPicker(preparePetPhoto, (photo) => {
     // Replacing a file chosen earlier in this form: nothing references it, so it goes now.
-    if (photoRef.current && photoRef.current !== originalPhoto) void deleteFiles([photoRef.current]);
+    if (photoRef.current && photoRef.current !== originalPhoto) discardFiles([photoRef.current]);
     setPhotoFile(photo.file);
   });
   useEffect(
     () => () => {
       const unsaved = photoRef.current;
-      if (!saved.current && unsaved && unsaved !== originalPhoto) void deleteFiles([unsaved]);
+      if (!saved.current && unsaved && unsaved !== originalPhoto) discardFiles([unsaved]);
     },
     [originalPhoto],
   );
 
   function removePhoto() {
-    if (photoFile && photoFile !== originalPhoto) void deleteFiles([photoFile]);
+    if (photoFile && photoFile !== originalPhoto) discardFiles([photoFile]);
     // The pet's saved photo is only deleted once the form is saved without it.
     setPhotoFile(null);
   }
@@ -96,7 +99,7 @@ export function PetForm({ pet, onSubmit, onSaved, children }: PetFormProps) {
       guard.run(() => onSubmit(result.data), {
         onSuccess: () => {
           saved.current = true;
-          if (originalPhoto && originalPhoto !== photoFile) void deleteFiles([originalPhoto]);
+          if (originalPhoto && originalPhoto !== photoFile) discardFiles([originalPhoto]);
           onSaved();
         },
       });
@@ -116,7 +119,7 @@ export function PetForm({ pet, onSubmit, onSaved, children }: PetFormProps) {
               label={photoFile ? t('photos.pet.change') : t('photos.pet.choose')}
               onPress={() => setChoosingPhoto(true)}
             />
-            {photoFile ? <Button variant="secondary" label={t('photos.pet.remove')} onPress={removePhoto} /> : null}
+            {photoFile ? <Button variant="secondary" label={t('photos.pet.remove')} onPress={() => setConfirmingRemoval(true)} /> : null}
           </View>
         </View>
         <Text style={[typography.caption, { color: picker.message ? colors.status.overdue.text : colors.textSecondary }]}>
@@ -159,6 +162,19 @@ export function PetForm({ pet, onSubmit, onSaved, children }: PetFormProps) {
       <View style={[styles.footer, { padding: spacing.md, backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <Button label={t('pets.form.save')} onPress={submit} />
       </View>
+      <ConfirmDialog
+        visible={confirmingRemoval}
+        destructive
+        title={t('photos.pet.removeConfirm.title')}
+        message={t('photos.pet.removeConfirm.message')}
+        confirmLabel={t('photos.pet.removeConfirm.confirm')}
+        cancelLabel={t('common.cancel')}
+        onCancel={() => setConfirmingRemoval(false)}
+        onConfirm={() => {
+          setConfirmingRemoval(false);
+          removePhoto();
+        }}
+      />
       <PhotoSourceSheet
         visible={choosingPhoto}
         onCancel={() => setChoosingPhoto(false)}

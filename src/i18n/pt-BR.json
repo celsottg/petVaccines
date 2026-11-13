@@ -204,7 +204,8 @@
     },
     "errors": {
       "cameraDenied": "Sem acesso à câmera. Para tirar fotos, permita o uso da câmera nas configurações do aparelho.",
-      "failed": "Não foi possível processar a foto. Tente de novo."
+      "failed": "Não foi possível processar a foto. Tente de novo.",
+      "limit": "Este registro já tem 3 fotos."
     },
     "removePending": {
       "title": "Remover foto?",
@@ -226,7 +227,12 @@
       "change": "Trocar foto",
       "remove": "Remover foto",
       "hint": "A foto é opcional. Câmera ou galeria.",
-      "avatarLabel": "Foto de {{name}}"
+      "avatarLabel": "Foto de {{name}}",
+      "removeConfirm": {
+        "title": "Remover a foto?",
+        "message": "A foto sai do cadastro quando você salvar.",
+        "confirm": "Remover"
+      }
     }
   }
 }

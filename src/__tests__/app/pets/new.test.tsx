@@ -37,7 +37,11 @@ const renderForm = () => renderRouter(routes, { initialUrl: '/pets/new' });
 const allPets = () => db.select().from(pets).all();
 
 describe('Novo pet screen', () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.mocked(preparePetPhoto).mockReset();
+    jest.mocked(deleteFiles).mockReset().mockResolvedValue(undefined);
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -247,6 +251,8 @@ describe('Novo pet screen', () => {
       await choosePhoto('Escolher foto');
 
       await fireEvent.press(screen.getByRole('button', { name: 'Remover foto' }));
+      expect(deleteFiles).not.toHaveBeenCalled();
+      await fireEvent.press(screen.getByRole('button', { name: 'Remover' }));
       await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
 
       expect(deleteFiles).toHaveBeenCalledWith([photo.file]);

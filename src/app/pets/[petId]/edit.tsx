@@ -12,7 +12,7 @@ import { deletePet, updatePet } from '@/data/pets';
 import { usePet } from '@/data/usePets';
 import { db } from '@/db/client';
 import { t } from '@/i18n';
-import { deleteFiles } from '@/services/files';
+import { discardFiles } from '@/services/discardFiles';
 import { useTheme } from '@/theme';
 
 export default function EditPetScreen() {
@@ -61,7 +61,7 @@ export default function EditPetScreen() {
             {
               onSuccess: () => {
                 // The rows are gone; a file that cannot be removed now is swept at the next start.
-                void deleteFiles(removedFiles.current);
+                discardFiles(removedFiles.current);
                 setLeaving(true);
                 router.dismissTo('/');
               },

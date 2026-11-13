@@ -38,6 +38,13 @@ describe('Editar vacina screen', () => {
     db.delete(settings).run();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+    // Implementations set with mockImplementation must not leak into the next test.
+    jest.mocked(preparePhoto).mockReset();
+    jest.mocked(deleteFiles).mockReset().mockResolvedValue(undefined);
+  });
+
   it('loads the record into the form', async () => {
     const pet = newPet(db);
     const record = createVaccination(db, {
@@ -201,7 +208,6 @@ describe('Editar vacina screen', () => {
     expect(update).toHaveBeenCalledTimes(1);
     expect(dismissTo).toHaveBeenCalledTimes(1);
     expect(stored()[0].brand).toBe('Vanguard');
-    jest.restoreAllMocks();
   });
 
   it('shows a message and does not navigate when the update fails, then saves on retry', async () => {
@@ -210,7 +216,7 @@ describe('Editar vacina screen', () => {
     await renderEdit(record.id);
     const dismissTo = jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
     await fireEvent.changeText(screen.getByLabelText('Marca'), 'Vanguard');
-    const failing = jest.spyOn(db, 'transaction').mockImplementation(() => {
+    jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
       throw new Error('disk full');
     });
 
@@ -220,11 +226,9 @@ describe('Editar vacina screen', () => {
     expect(dismissTo).not.toHaveBeenCalled();
     expect(stored()[0].brand).toBeNull();
 
-    failing.mockRestore();
     await save();
     expect(stored()[0].brand).toBe('Vanguard');
     expect(dismissTo).toHaveBeenCalledTimes(1);
-    jest.restoreAllMocks();
   });
   describe('proof photos', () => {
     const record = () =>

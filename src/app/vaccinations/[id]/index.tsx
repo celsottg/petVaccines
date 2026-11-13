@@ -17,7 +17,7 @@ import { db } from '@/db/client';
 import { formatBrDate } from '@/domain/dateInput';
 import { todayLocal } from '@/domain/dates';
 import { t } from '@/i18n';
-import { deleteFiles } from '@/services/files';
+import { discardFiles } from '@/services/discardFiles';
 import { useTheme } from '@/theme';
 
 export default function VaccinationDetailScreen() {
@@ -113,7 +113,7 @@ export default function VaccinationDetailScreen() {
             {
               onSuccess: () => {
                 // The record is gone; a file that cannot be removed now is swept at the next start.
-                void deleteFiles(removedFiles.current);
+                discardFiles(removedFiles.current);
                 setLeaving(true);
                 router.dismissTo({ pathname: '/pets/[petId]', params: { petId: pet.id } });
               },

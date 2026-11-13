@@ -1,4 +1,5 @@
 import { fireEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { View } from 'react-native';
 
@@ -34,6 +35,11 @@ const routes = {
 const renderViewer = (id: string) => renderRouter(routes, { initialUrl: `/attachments/${id}` });
 
 describe('Visualizador de comprovante screen', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.mocked(deleteFiles).mockReset().mockResolvedValue(undefined);
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     db.delete(pets).run();
@@ -94,4 +100,60 @@ describe('Visualizador de comprovante screen', () => {
 
     expect(screen.getByText('Não encontramos este item')).toBeOnTheScreen();
   });
+  it('keeps the photo and its file when the delete fails, shows a message and deletes on retry', async () => {
+    const vaccination = newVaccination(db, newPet(db).id);
+    const attachment = newAttachment(db, vaccination.id);
+    await renderViewer(attachment.id);
+    jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
+      throw new Error('disk full');
+    });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir foto' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+    expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+    expect(db.select().from(attachments).all()).toHaveLength(1);
+    expect(deleteFiles).not.toHaveBeenCalled();
+    expect(screen).toHavePathname(`/attachments/${attachment.id}`);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir foto' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+    expect(db.select().from(attachments).all()).toEqual([]);
+    expect(deleteFiles).toHaveBeenCalledWith([attachment.file]);
+    expect(screen).toHavePathname(`/vaccinations/${vaccination.id}`);
+  });
+
+  it('deletes once and navigates once when the confirmation is pressed twice', async () => {
+    const vaccination = newVaccination(db, newPet(db).id);
+    const attachment = newAttachment(db, vaccination.id);
+    await renderViewer(attachment.id);
+    const replace = jest.spyOn(router, 'replace').mockImplementation(() => {});
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir foto' }));
+    const confirm = screen.getByRole('button', { name: 'Excluir' });
+    const transaction = jest.spyOn(db, 'transaction');
+
+    await fireEvent.press(confirm);
+    await fireEvent.press(confirm);
+
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(deleteFiles).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Não encontramos este item')).toBeNull();
+  });
+
+  it('still shows a successful result when the file removal fails afterwards', async () => {
+    const vaccination = newVaccination(db, newPet(db).id);
+    const attachment = newAttachment(db, vaccination.id);
+    jest.mocked(deleteFiles).mockRejectedValue(new Error('read-only volume'));
+    await renderViewer(attachment.id);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir foto' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+    expect(db.select().from(attachments).all()).toEqual([]);
+    expect(screen).toHavePathname(`/vaccinations/${vaccination.id}`);
+    expect(screen.queryByText('Não foi possível salvar. Tente novamente.')).toBeNull();
+  });
+
 });

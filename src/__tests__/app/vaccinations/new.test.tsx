@@ -49,7 +49,11 @@ describe('Nova vacina screen', () => {
     db.delete(settings).run();
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.mocked(preparePhoto).mockReset();
+    jest.mocked(deleteFiles).mockReset().mockResolvedValue(undefined);
+  });
 
   it('starts with today as the application date and no next dose', async () => {
     const pet = newPet(db);
@@ -495,6 +499,7 @@ describe('Nova vacina screen', () => {
 
       expect(screen.getAllByRole('button', { name: /ainda não salva/ })).toHaveLength(3);
       expect(screen.queryByRole('button', { name: 'Adicionar foto' })).toBeNull();
+      expect(screen.queryByText(/Enquadre o carimbo/)).toBeNull();
     });
 
     it('asks before removing a pending photo and deletes its file', async () => {

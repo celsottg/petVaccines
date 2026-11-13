@@ -10,7 +10,7 @@ import { archivePet, createPet } from '@/data/pets';
 import { newAttachment, newPet } from '@/data/testHelpers';
 import { createVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
-import { pets, settings, vaccinations } from '@/db/schema';
+import { attachments, pets, settings, vaccinations } from '@/db/schema';
 import { deleteFiles } from '@/services/files';
 import { preparePetPhoto } from '@/services/photos';
 
@@ -48,6 +48,13 @@ describe('Editar pet screen', () => {
     jest.clearAllMocks();
     db.delete(pets).run();
     db.delete(settings).run();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    // Implementations set with mockImplementation must not leak into the next test.
+    jest.mocked(preparePetPhoto).mockReset();
+    jest.mocked(deleteFiles).mockReset().mockResolvedValue(undefined);
   });
 
   it('loads the pet into the form', async () => {
@@ -137,7 +144,7 @@ describe('Editar pet screen', () => {
     const pet = newPet(db, { name: 'Rex' });
     await renderEdit(pet.id);
     const dismissTo = jest.spyOn(router, 'dismissTo');
-    const failing = jest.spyOn(db, 'transaction').mockImplementation(() => {
+    jest.spyOn(db, 'transaction').mockImplementation(() => {
       throw new Error('disk full');
     });
 
@@ -146,8 +153,6 @@ describe('Editar pet screen', () => {
 
     expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
     expect(dismissTo).not.toHaveBeenCalled();
-    failing.mockRestore();
-    dismissTo.mockRestore();
     expect(allPets()).toHaveLength(1);
   });
 
@@ -169,7 +174,6 @@ describe('Editar pet screen', () => {
 
     expect(allPets()).toEqual([]);
     expect(screen.queryByText('Não encontramos este item')).toBeNull();
-    jest.restoreAllMocks();
   });
 
   it('does not edit, archive or delete a pet with the wallet closed', async () => {
@@ -220,6 +224,7 @@ describe('Editar pet screen', () => {
       await renderEdit(pet.id);
 
       await fireEvent.press(screen.getByRole('button', { name: 'Remover foto' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Remover' }));
       expect(deleteFiles).not.toHaveBeenCalled();
       await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
 
@@ -254,6 +259,65 @@ describe('Editar pet screen', () => {
       expect(allPets()).toEqual([]);
       expect(deleteFiles).toHaveBeenCalledTimes(1);
       expect(deleteFiles).toHaveBeenCalledWith(expect.arrayContaining(['rex.jpg', proof.file]));
+    });
+  });
+
+  describe('deleting files', () => {
+    const petWithFiles = () => {
+      const pet = createPet(db, { name: 'Rex', species: 'dog', photoFile: 'rex.jpg' });
+      const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-01-01' });
+      return { pet, proof: newAttachment(db, record.id) };
+    };
+
+    it('does not touch any file when the database delete fails, and deletes them on retry', async () => {
+      const { pet, proof } = petWithFiles();
+      await renderEdit(pet.id);
+      jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
+        throw new Error('disk full');
+      });
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir pet' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+      expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+      expect(allPets()).toHaveLength(1);
+      expect(db.select().from(attachments).all()).toHaveLength(1);
+      expect(deleteFiles).not.toHaveBeenCalled();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir pet' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+      expect(allPets()).toEqual([]);
+      expect(deleteFiles).toHaveBeenCalledTimes(1);
+      expect(deleteFiles).toHaveBeenCalledWith(expect.arrayContaining(['rex.jpg', proof.file]));
+    });
+
+    it('still shows a successful result when the file removal fails afterwards', async () => {
+      const { pet } = petWithFiles();
+      jest.mocked(deleteFiles).mockRejectedValue(new Error('read-only volume'));
+      await renderEdit(pet.id);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir pet' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+      expect(allPets()).toEqual([]);
+      expect(screen).toHavePathname('/');
+      expect(screen.queryByText('Não foi possível salvar. Tente novamente.')).toBeNull();
+    });
+
+    it('asks for confirmation before removing the photo from the form', async () => {
+      const pet = createPet(db, { name: 'Mia', species: 'cat', photoFile: 'mia.jpg' });
+      await renderEdit(pet.id);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Remover foto' }));
+      expect(screen.getByText('Remover a foto?')).toBeOnTheScreen();
+      await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+      expect(screen.getByLabelText('Foto de Mia')).toBeOnTheScreen();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Remover foto' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Remover' }));
+      expect(screen.queryByLabelText('Foto de Mia')).toBeNull();
+      expect(deleteFiles).not.toHaveBeenCalled();
     });
   });
 

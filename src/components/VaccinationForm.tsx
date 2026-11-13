@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { catalogMatcher, findCatalogVaccine } from '@/catalog';
+import { MAX_ATTACHMENTS_PER_VACCINATION } from '@/data/attachments';
 import type { Pet, Vaccination, VaccinationInput } from '@/data/types';
 import { normalizeVaccineName } from '@/domain/current';
 import { formatBrDate, maskBrDate, parseOptionalBrDate } from '@/domain/dateInput';
@@ -10,7 +11,8 @@ import { todayLocal } from '@/domain/dates';
 import { suggestNextDue } from '@/domain/nextDose';
 import { vaccinationInputSchema } from '@/domain/validation';
 import { t } from '@/i18n';
-import { deleteFiles, photoUri } from '@/services/files';
+import { discardFiles } from '@/services/discardFiles';
+import { photoUri } from '@/services/files';
 import { preparePhoto, type PreparedPhoto } from '@/services/photos';
 import { useTheme } from '@/theme';
 
@@ -74,7 +76,7 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
   const saved = useRef(false);
   useEffect(
     () => () => {
-      if (!saved.current && pendingRef.current.length > 0) void deleteFiles(pendingRef.current.map((p) => p.file));
+      if (!saved.current && pendingRef.current.length > 0) discardFiles(pendingRef.current.map((p) => p.file));
     },
     [],
   );
@@ -189,7 +191,7 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
             editable
             onAdd={picker.pick}
             onOpen={(id) => setRemovingPending(pending.find((photo) => photo.id === id))}
-            hint={t('photos.formHint')}
+            hint={pending.length < MAX_ATTACHMENTS_PER_VACCINATION ? t('photos.formHint') : undefined}
             message={picker.message}
           />
         )}
@@ -218,7 +220,7 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
         onConfirm={() => {
           if (removingPending) {
             setPending((list) => list.filter((photo) => photo.id !== removingPending.id));
-            void deleteFiles([removingPending.file]);
+            discardFiles([removingPending.file]);
           }
           setRemovingPending(undefined);
         }}

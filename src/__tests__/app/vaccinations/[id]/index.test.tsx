@@ -1,4 +1,4 @@
-import { fireEvent } from '@testing-library/react-native';
+import { act, fireEvent } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import { View } from 'react-native';
@@ -47,7 +47,12 @@ describe('Detalhe da vacina screen', () => {
     db.delete(settings).run();
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+    // Implementations set with mockImplementation must not leak into the next test.
+    jest.mocked(preparePhoto).mockReset();
+    jest.mocked(deleteFiles).mockReset().mockResolvedValue(undefined);
+  });
 
   it('shows the data that was filled in and leaves out the rest', async () => {
     const pet = newPet(db, { name: 'Thor' });
@@ -195,12 +200,13 @@ describe('Detalhe da vacina screen', () => {
       expect(screen.queryByText('Não encontramos este item')).toBeNull();
     });
 
-    it('keeps the record and shows a message when deleting fails', async () => {
+    it('keeps the record and its files and shows a message when deleting fails, then deletes on retry', async () => {
       const pet = newPet(db);
       const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-01-01' });
+      const proof = newAttachment(db, record.id);
       await renderDetail(record.id);
       const dismissTo = jest.spyOn(router, 'dismissTo');
-      jest.spyOn(db, 'transaction').mockImplementation(() => {
+      jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
         throw new Error('disk full');
       });
 
@@ -209,12 +215,29 @@ describe('Detalhe da vacina screen', () => {
 
       expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
       expect(dismissTo).not.toHaveBeenCalled();
-      jest.restoreAllMocks();
       expect(stored()).toHaveLength(1);
+      expect(db.select().from(attachments).all()).toHaveLength(1);
+      expect(deleteFiles).not.toHaveBeenCalled();
 
       await fireEvent.press(screen.getByRole('button', { name: 'Excluir vacina' }));
       await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
       expect(stored()).toEqual([]);
+      expect(deleteFiles).toHaveBeenCalledWith([proof.file]);
+    });
+
+    it('still shows a successful result when the file removal fails afterwards', async () => {
+      const pet = newPet(db);
+      const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-01-01' });
+      newAttachment(db, record.id);
+      jest.mocked(deleteFiles).mockRejectedValue(new Error('read-only volume'));
+      await renderDetail(record.id);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir vacina' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+      expect(stored()).toEqual([]);
+      expect(screen).toHavePathname(`/pets/${pet.id}`);
+      expect(screen.queryByText('Não foi possível salvar. Tente novamente.')).toBeNull();
     });
 
     it('deletes once and navigates once when the confirmation is pressed twice', async () => {
@@ -340,6 +363,77 @@ describe('Detalhe da vacina screen', () => {
 
       expect(deleteFiles).toHaveBeenCalledWith([photo.file]);
       expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+    });
+
+    it('ignores a second tap on the source while the first photo is still being processed', async () => {
+      let finish: (photo: ReturnType<typeof prepared>) => void = () => {};
+      jest.mocked(preparePhoto).mockReturnValue(new Promise((resolve) => (finish = resolve)));
+      const bare = record(newPet(db).id);
+      await renderDetail(bare.id);
+      await fireEvent.press(screen.getByRole('button', { name: 'Adicionar foto' }));
+      const source = screen.getByRole('button', { name: 'Escolher da galeria' });
+
+      await fireEvent.press(source);
+      await fireEvent.press(source);
+      await act(async () => finish(prepared()));
+
+      expect(preparePhoto).toHaveBeenCalledTimes(1);
+      expect(db.select().from(attachments).all()).toHaveLength(1);
+    });
+
+    it('deletes the processed file when the screen is left before processing finishes', async () => {
+      let finish: (photo: ReturnType<typeof prepared>) => void = () => {};
+      jest.mocked(preparePhoto).mockReturnValue(new Promise((resolve) => (finish = resolve)));
+      const bare = record(newPet(db).id);
+      await renderDetail(bare.id);
+      await fireEvent.press(screen.getByRole('button', { name: 'Adicionar foto' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Escolher da galeria' }));
+      const photo = prepared();
+
+      await screen.unmount();
+      await act(async () => finish(photo));
+
+      expect(deleteFiles).toHaveBeenCalledWith([photo.file]);
+      expect(db.select().from(attachments).all()).toEqual([]);
+    });
+
+    it('can retry after the attachment could not be saved', async () => {
+      const failed = prepared();
+      jest.mocked(preparePhoto).mockResolvedValueOnce(failed).mockResolvedValueOnce(prepared());
+      const bare = record(newPet(db).id);
+      await renderDetail(bare.id);
+      jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
+        throw new Error('disk full');
+      });
+
+      await addPhoto('Escolher da galeria');
+      expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+      expect(deleteFiles).toHaveBeenCalledWith([failed.file]);
+      expect(db.select().from(attachments).all()).toEqual([]);
+
+      await addPhoto('Escolher da galeria');
+
+      expect(db.select().from(attachments).all()).toHaveLength(1);
+      expect(screen.queryByText('Não foi possível salvar. Tente novamente.')).toBeNull();
+    });
+
+    it('refuses a fourth photo through the screen own write path with a specific message and deletes its file', async () => {
+      const bare = record(newPet(db).id);
+      newAttachment(db, bare.id);
+      newAttachment(db, bare.id);
+      const late = prepared();
+      // Another change fills the record while the photo is being processed.
+      jest.mocked(preparePhoto).mockImplementation(async () => {
+        newAttachment(db, bare.id);
+        return late;
+      });
+      await renderDetail(bare.id);
+
+      await addPhoto('Escolher da galeria');
+
+      expect(screen.getByText('Este registro já tem 3 fotos.')).toBeOnTheScreen();
+      expect(db.select().from(attachments).all()).toHaveLength(3);
+      expect(deleteFiles).toHaveBeenCalledWith([late.file]);
     });
 
     it('shows the photos of an archived pet but offers no way to add one', async () => {

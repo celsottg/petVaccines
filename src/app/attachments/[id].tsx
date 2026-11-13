@@ -13,7 +13,8 @@ import { deleteAttachment } from '@/data/attachments';
 import { useAttachmentDetail } from '@/data/useAttachments';
 import { db } from '@/db/client';
 import { t } from '@/i18n';
-import { deleteFiles, photoUri } from '@/services/files';
+import { discardFiles } from '@/services/discardFiles';
+import { photoUri } from '@/services/files';
 import { useTheme } from '@/theme';
 
 /** Screen 8: a proof photo full screen, with zoom. Deleting is not offered for an archived pet. */
@@ -61,7 +62,7 @@ export default function AttachmentViewerScreen() {
             {
               onSuccess: () => {
                 // The row is gone; a file that cannot be removed now is swept at the next start.
-                if (removed.current) void deleteFiles([removed.current]);
+                if (removed.current) discardFiles([removed.current]);
                 setLeaving(true);
                 if (router.canGoBack()) router.back();
                 else router.replace({ pathname: '/vaccinations/[id]', params: { id: vaccination.id } });

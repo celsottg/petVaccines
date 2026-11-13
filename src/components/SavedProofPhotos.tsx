@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 
-import { addAttachment, MAX_ATTACHMENTS_PER_VACCINATION } from '@/data/attachments';
+import { addAttachment, ATTACHMENT_LIMIT, MAX_ATTACHMENTS_PER_VACCINATION } from '@/data/attachments';
 import { useAttachments } from '@/data/useAttachments';
 import { db } from '@/db/client';
 import { t } from '@/i18n';
-import { deleteFiles, photoUri } from '@/services/files';
+import { discardFiles } from '@/services/discardFiles';
+import { photoUri } from '@/services/files';
 import { preparePhoto, type PreparedPhoto } from '@/services/photos';
 
 import { ProofPhotos } from './ProofPhotos';
@@ -21,15 +23,18 @@ interface SavedProofPhotosProps {
 export function SavedProofPhotos({ vaccinationId, editable }: SavedProofPhotosProps) {
   const attachments = useAttachments(vaccinationId);
   const guard = useGuardedAction();
+  const [limitReached, setLimitReached] = useState(false);
 
   function attach(photo: PreparedPhoto) {
+    setLimitReached(false);
     guard.run(
       () => {
         try {
           addAttachment(db, { ...photo, vaccinationId });
         } catch (error) {
+          if (error instanceof Error && error.message === ATTACHMENT_LIMIT) setLimitReached(true);
           // No row points to the file, so it must not stay on disk.
-          void deleteFiles([photo.file]);
+          discardFiles([photo.file]);
           throw error;
         }
       },
@@ -56,7 +61,7 @@ export function SavedProofPhotos({ vaccinationId, editable }: SavedProofPhotosPr
       onAdd={picker.pick}
       onOpen={(id) => router.push({ pathname: '/attachments/[id]', params: { id } })}
       hint={hint || undefined}
-      message={picker.message ?? guard.error}
+      message={limitReached ? t('photos.errors.limit') : (picker.message ?? guard.error)}
     />
   );
 }
