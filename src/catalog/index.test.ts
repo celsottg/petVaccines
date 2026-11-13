@@ -25,6 +25,19 @@ describe('br.json', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  // Records store these ids, so an id may be added to this list but never renamed or removed.
+  it('keeps the released ids', () => {
+    expect(br.vaccines.map((v) => v.id).sort()).toEqual([
+      'br-cat-polyvalent',
+      'br-cat-rabies',
+      'br-dog-giardia',
+      'br-dog-kennel-cough',
+      'br-dog-leishmaniasis',
+      'br-dog-polyvalent',
+      'br-dog-rabies',
+    ]);
+  });
+
   it('has an id prefix that matches the species', () => {
     for (const v of br.vaccines) expect(v.id.startsWith(`br-${v.species}-`)).toBe(true);
   });
@@ -43,9 +56,14 @@ describe('listCatalog', () => {
   });
 
   it('is in alphabetical order, accent-aware', () => {
-    const names = listCatalog('dog').map((v) => v.name);
-    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, 'pt-BR')));
-    expect(names.indexOf('Giárdia')).toBeLessThan(names.indexOf('Gripe canina'));
+    expect(listCatalog('dog').map((v) => v.name)).toEqual([
+      'Antirrábica',
+      'Giárdia',
+      'Gripe canina',
+      'Leishmaniose',
+      'Polivalente (V8/V10)',
+    ]);
+    expect(listCatalog('cat').map((v) => v.name)).toEqual(['Antirrábica', 'Polivalente (V3/V4/V5)']);
   });
 });
 
