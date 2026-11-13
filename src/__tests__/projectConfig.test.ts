@@ -49,6 +49,21 @@ describe('app.json photo permissions (Task 7)', () => {
   });
 });
 
+describe('app.json local reminders (Task 8)', () => {
+  const { expo } = json('app.json');
+  const notifications = expo.plugins.find((plugin: unknown) => Array.isArray(plugin) && plugin[0] === 'expo-notifications');
+
+  it('configures expo-notifications for local notifications only: no remote (APNs) setup', () => {
+    expect(notifications).toBeDefined();
+    expect(notifications[1].enableRemoteNotifications).toBe(false);
+    expect(notifications[1].enableBackgroundRemoteNotifications).not.toBe(true);
+  });
+
+  it('declares no push services, google-services file or EAS push credentials', () => {
+    expect(JSON.stringify(expo)).not.toMatch(/googleServicesFile|GoogleService-Info|projectId|pushNotification/i);
+  });
+});
+
 describe('tsconfig.json', () => {
   it('has strict mode enabled', () => {
     expect(json('tsconfig.json').compilerOptions.strict).toBe(true);

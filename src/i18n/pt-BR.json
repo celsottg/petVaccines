@@ -234,5 +234,58 @@
         "confirm": "Remover"
       }
     }
+  },
+  "reminders": {
+    "channel": {
+      "name": "Lembretes de vacina"
+    },
+    "notification": {
+      "title": "Lembrete de vacina",
+      "today": "{{pet}}: {{vaccine}} vence hoje",
+      "inDays_one": "{{pet}}: {{vaccine}} vence em {{count}} dia",
+      "inDays_other": "{{pet}}: {{vaccine}} vence em {{count}} dias"
+    },
+    "detail": {
+      "title": "Lembretes",
+      "switchLabel": "Lembretes desta vacina",
+      "daysBefore_one": "{{count}} dia antes",
+      "daysBefore_other": "{{count}} dias antes",
+      "onTheDay": "No dia",
+      "switchedOff": "Lembretes desligados para esta vacina.",
+      "allPassed": "Todas as datas de lembrete já passaram.",
+      "permissionDenied": "Os lembretes estão desligados no sistema. Para recebê-los, permita as notificações do app nas configurações do aparelho.",
+      "notCurrent": "Só a aplicação mais recente de cada vacina tem lembretes.",
+      "noNextDue": "Sem próxima dose, não há lembretes.",
+      "archived": "A carteira está encerrada, então não há lembretes."
+    }
+  },
+  "settings": {
+    "link": "Ajustes e sobre",
+    "title": "Ajustes",
+    "dueSoonDays": "Prazo de \"vence em breve\" (dias)",
+    "dueSoonHint": "Vacinas com a próxima dose dentro desse prazo aparecem como \"vence em breve\".",
+    "offsetsTitle": "Antecedência dos lembretes",
+    "offsetsHint": "Quantos dias antes da próxima dose o app avisa. 0 é o próprio dia. O aviso chega às 09:00.",
+    "offsetLabel": "Antecedência {{index}} (dias)",
+    "addOffset": "Adicionar antecedência",
+    "removeOffset": "Remover",
+    "removeOffsetLabel": "Remover antecedência {{index}}",
+    "save": "Salvar",
+    "errors": {
+      "dueSoonInvalid": "Informe um número inteiro de 1 a 365.",
+      "offsetInvalid": "Informe um número inteiro de 0 a 365.",
+      "offsetDuplicate": "Esta antecedência já foi informada.",
+      "offsetsRequired": "Mantenha ao menos uma antecedência."
+    },
+    "about": {
+      "title": "Sobre",
+      "version": "Versão",
+      "license": "Licença",
+      "licenseValue": "GPL-3.0",
+      "repository": "Código-fonte",
+      "repositoryLink": "Abrir o repositório no navegador",
+      "repositoryError": "Não foi possível abrir o navegador.",
+      "disclaimer": "Registro declaratório feito pelo tutor. Não substitui a carteira de vacinação emitida pelo veterinário."
+    }
   }
 }
