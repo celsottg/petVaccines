@@ -97,6 +97,7 @@ class FakeDirectory {
   }
   delete() {
     if (!dirs.has(this.uri)) throw new Error(`Directory does not exist: ${this.uri}`);
+    for (const [uri, entry] of files) if (uri.startsWith(`${this.uri}/`) && entry.failDelete) throw new Error(`Cannot delete: ${uri}`);
     for (const uri of [...files.keys()]) if (uri.startsWith(`${this.uri}/`)) files.delete(uri);
     for (const uri of [...dirs]) if (uri === this.uri || uri.startsWith(`${this.uri}/`)) dirs.delete(uri);
   }
@@ -132,6 +133,8 @@ export const fakeFs = {
     dirs.add(uri);
   },
   has: (uri: string) => files.has(uri),
+  /** URIs of every directory under a directory. */
+  dirsUnder: (dirUri: string) => [...dirs].filter((uri) => uri.startsWith(`${dirUri}/`)).sort(),
   hasDir: (uri: string) => dirs.has(uri),
   /** Text written to a file with `write`. */
   text: (uri: string) => files.get(uri)?.text,

@@ -16,10 +16,16 @@ import type { BackupData } from './schema';
  *
  * `last_backup_at` and `last_change_at` both become `exportedAt`: the data now
  * equals that backup, so the stale-backup warning stays quiet until something changes.
- * `data` must come from `parseBackupJson`.
+ * A backup dated in the future (clock error, edited file) would silence that warning
+ * for good, so the stored instant is the earlier of `exportedAt` and `now`; the file is
+ * still accepted. `data` must come from `parseBackupJson`.
+ *
+ * A restore rewrites the WHOLE settings table. A future setting that the backup does
+ * not carry must be handled here explicitly, or a restore would reset it.
  */
-export function replaceAllData(db: Db, data: BackupData, skipFiles: string[]): void {
+export function replaceAllData(db: Db, data: BackupData, skipFiles: string[], now: Date = new Date()): void {
   const skipped = new Set(skipFiles);
+  const stored = Date.parse(data.exportedAt) > now.getTime() ? now.toISOString() : data.exportedAt;
   db.transaction((tx) => {
     tx.delete(attachments).run();
     tx.delete(vaccinations).run();
@@ -40,7 +46,7 @@ export function replaceAllData(db: Db, data: BackupData, skipFiles: string[]): v
     setSetting(tx, 'backup_warning_days', data.settings.backup_warning_days);
     setSetting(tx, 'due_soon_days', data.settings.due_soon_days);
     setSetting(tx, 'reminder_offsets_days', data.settings.reminder_offsets_days);
-    setSetting(tx, 'last_backup_at', data.exportedAt);
-    setSetting(tx, 'last_change_at', data.exportedAt);
+    setSetting(tx, 'last_backup_at', stored);
+    setSetting(tx, 'last_change_at', stored);
   });
 }

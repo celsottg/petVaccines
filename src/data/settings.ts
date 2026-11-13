@@ -10,7 +10,10 @@ export interface Settings {
   reminderOffsetsDays: number[];
 }
 
-/** Keys of the `settings` table, as stored (snake_case). */
+/**
+ * Keys of the `settings` table, as stored (snake_case). A backup restore rewrites the whole
+ * table (`replaceAllData`): a new key that the backup does not carry must be handled there.
+ */
 export type SettingKey =
   | 'last_backup_at'
   | 'last_change_at'

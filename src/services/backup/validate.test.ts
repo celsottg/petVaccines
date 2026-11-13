@@ -1,5 +1,5 @@
 import { sampleBackup } from './fixture';
-import { BackupError, checkEntries, checkFiles, parseBackupJson } from './validate';
+import { BackupError, checkEntries, checkFiles, isJunkEntry, parseBackupJson } from './validate';
 
 const PET_PHOTO = '33333333-3333-4333-8333-333333333333.jpg';
 const PROOF = '44444444-4444-4444-8444-444444444444.jpg';
@@ -102,5 +102,20 @@ describe('checkFiles', () => {
   it('throws UNSAFE_ENTRY for an entry outside the allowed set', () => {
     expect(codeOf(() => checkFiles(data, ['../x.jpg']))).toBe('UNSAFE_ENTRY');
     expect(codeOf(() => checkFiles(data, ['outra-pasta/x.jpg']))).toBe('UNSAFE_ENTRY');
+  });
+});
+
+describe('operating-system junk', () => {
+  it.each(['__MACOSX', '__MACOSX/photos', '__MACOSX/._data.json', '.DS_Store', 'photos/.DS_Store', 'pets/.DS_Store', 'photos/sub/.DS_Store'])('ignores %s', (path) => {
+    expect(isJunkEntry(path)).toBe(true);
+  });
+
+  it.each(['data.json', 'photos', 'photos/x.jpg', '.DS_Store.bak', 'MACOSX/x', 'a/__MACOSX/x', 'photos/._x.jpg'])('does not ignore %s', (path) => {
+    expect(isJunkEntry(path)).toBe(false);
+  });
+
+  it('lets checkEntries accept junk next to a valid backup, but nothing else', () => {
+    expect(() => checkEntries(['data.json', '.DS_Store', 'photos/.DS_Store', '__MACOSX/._data.json'], ['photos', '__MACOSX'])).not.toThrow();
+    expect(codeOf(() => checkEntries(['__MACOSX/x', 'evil.txt'], []))).toBe('UNSAFE_ENTRY');
   });
 });

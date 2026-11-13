@@ -53,12 +53,24 @@ const UUID_JPG = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\
 const PHOTO_FOLDERS = ['photos', 'pets'];
 
 /**
+ * Operating-system junk that a zip made on a Mac may carry: the `__MACOSX` folder and
+ * `.DS_Store` files (at any depth). It is neither copied nor treated as unsafe.
+ * Nothing else is ever ignored.
+ */
+export function isJunkEntry(path: string): boolean {
+  const parts = path.split('/');
+  return parts[0] === '__MACOSX' || parts[parts.length - 1] === '.DS_Store';
+}
+
+/**
  * The allow-list for what an extracted zip may contain: `data.json` at the root,
  * `photos/<uuid>.jpg`, `pets/<uuid>.jpg` and the two folders. `files` and
  * `directories` are paths relative to the staging folder. Anything else throws
  * `UNSAFE_ENTRY`.
  */
-export function checkEntries(files: string[], directories: string[]): void {
+export function checkEntries(allFiles: string[], allDirectories: string[]): void {
+  const files = allFiles.filter((path) => !isJunkEntry(path));
+  const directories = allDirectories.filter((path) => !isJunkEntry(path));
   for (const dir of directories) {
     if (!PHOTO_FOLDERS.includes(dir)) throw new BackupError('UNSAFE_ENTRY');
   }
