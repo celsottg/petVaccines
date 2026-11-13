@@ -1,0 +1,10 @@
+{
+  "pets": {
+    "title": "Meus pets",
+    "empty": {
+      "title": "Nenhum pet cadastrado",
+      "description": "Cadastre seu cão ou gato para guardar a carteira de vacinação dele."
+    },
+    "add": "Adicionar pet"
+  }
+}
