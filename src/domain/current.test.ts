@@ -85,15 +85,15 @@ describe('splitCurrent', () => {
   });
 });
 
-describe('vaccineKey — casos adicionais', () => {
-  it('une as três grafias do Review Focus 2: "Antirrabica", "antirrábica " e "ANTIRRÁBICA"', () => {
+describe('vaccineKey — additional cases', () => {
+  it('merges the three spellings from Review Focus 2: "Antirrabica", "antirrábica " and "ANTIRRÁBICA"', () => {
     const keys = ['Antirrabica', 'antirrábica ', 'ANTIRRÁBICA'].map((vaccineName) =>
       vaccineKey({ catalogId: null, vaccineName }),
     );
     expect(new Set(keys).size).toBe(1);
   });
 
-  it('trata acento composto (NFC) e decomposto (NFD) como o mesmo texto', () => {
+  it('treats composed (NFC) and decomposed (NFD) accents as the same text', () => {
     const nfc = 'Antirrábica'.normalize('NFC');
     const nfd = 'Antirrábica'.normalize('NFD');
     expect(nfc).not.toBe(nfd);
@@ -106,40 +106,40 @@ describe('vaccineKey — casos adicionais', () => {
     ['Gripe Canina', 'gripe canina'],
     ['Polivalente (V10)', 'POLIVALENTE (V10)'],
     ['ÁÉÍÓÚ ÃÕ Ç ÜÂÊÔ', 'aeiou ao c uaeo'],
-  ])('"%s" e "%s" são a mesma vacina', (a, b) => {
+  ])('"%s" and "%s" are the same vaccine', (a, b) => {
     expect(vaccineKey({ catalogId: null, vaccineName: a })).toBe(vaccineKey({ catalogId: null, vaccineName: b }));
   });
 
-  it('remove espaços, tabulações e quebras de linha nas pontas', () => {
+  it('ignores leading and trailing spaces, tabs and line breaks', () => {
     expect(vaccineKey({ catalogId: null, vaccineName: '\t V10 \n' })).toBe(
       vaccineKey({ catalogId: null, vaccineName: 'V10' }),
     );
   });
 
-  it('mantém os espaços internos: só as pontas são ignoradas (spec)', () => {
+  it('keeps inner spaces: only the ends are ignored (spec)', () => {
     expect(vaccineKey({ catalogId: null, vaccineName: 'gripe canina' })).not.toBe(
       vaccineKey({ catalogId: null, vaccineName: 'gripecanina' }),
     );
   });
 
-  it('não lança erro com nome vazio ou só com espaços', () => {
+  it('does not throw on an empty or blank name', () => {
     expect(() => vaccineKey({ catalogId: null, vaccineName: '' })).not.toThrow();
     expect(vaccineKey({ catalogId: null, vaccineName: '   ' })).toBe(vaccineKey({ catalogId: null, vaccineName: '' }));
   });
 
-  it('distingue ids de catálogo diferentes, inclusive a mesma vacina em espécies diferentes', () => {
+  it('tells different catalog ids apart, including the same vaccine for different species', () => {
     expect(vaccineKey({ catalogId: 'br-dog-rabies', vaccineName: 'Antirrábica' })).not.toBe(
       vaccineKey({ catalogId: 'br-cat-rabies', vaccineName: 'Antirrábica' }),
     );
   });
 
-  it('um registro do catálogo e um de nome livre com o mesmo texto NÃO são a mesma vacina (spec: mesmo catalog_id, ou nome livre sem catalog_id)', () => {
+  it('a catalog record and a free-name record with the same text are NOT the same vaccine (spec: same catalog_id, or free name without catalog_id)', () => {
     expect(vaccineKey({ catalogId: 'br-dog-rabies', vaccineName: 'Antirrábica' })).not.toBe(
       vaccineKey({ catalogId: null, vaccineName: 'Antirrábica' }),
     );
   });
 
-  it('o prefixo isola as origens mesmo quando o texto imita o outro prefixo', () => {
+  it('the prefix keeps sources apart even when the text mimics the other prefix', () => {
     expect(vaccineKey({ catalogId: null, vaccineName: 'catalog:v10' })).not.toBe(
       vaccineKey({ catalogId: 'v10', vaccineName: 'x' }),
     );
@@ -148,14 +148,14 @@ describe('vaccineKey — casos adicionais', () => {
     );
   });
 
-  it('é idempotente: mesmo registro, mesma chave', () => {
+  it('is idempotent: same record, same key', () => {
     const v = { catalogId: null, vaccineName: ' Antirrábica ' };
     expect(vaccineKey(v)).toBe(vaccineKey({ ...v }));
   });
 });
 
-describe('splitCurrent — casos adicionais', () => {
-  it('Review Focus 2: o reforço com grafia diferente substitui a aplicação anterior', () => {
+describe('splitCurrent — additional cases', () => {
+  it('Review Focus 2: a booster spelled differently replaces the previous application', () => {
     const list = [
       rec('a', 'Antirrabica', '2024-11-28'),
       rec('b', 'antirrábica ', '2025-11-27'),
@@ -166,7 +166,7 @@ describe('splitCurrent — casos adicionais', () => {
     expect(ids(previous)).toEqual(['a', 'b']);
   });
 
-  it('desempate por createdAt vale também quando o mais recente vem DEPOIS na lista', () => {
+  it('the createdAt tie-break also holds when the newest comes LATER in the list', () => {
     const list = [
       rec('earlier', 'V10', '2026-03-18', '2026-03-18T09:00:00.000Z'),
       rec('later', 'V10', '2026-03-18', '2026-03-18T15:00:00.000Z'),
@@ -176,7 +176,7 @@ describe('splitCurrent — casos adicionais', () => {
     expect(ids(previous)).toEqual(['earlier']);
   });
 
-  it('desempate entre três registros no mesmo dia escolhe o createdAt mais recente, em qualquer ordem', () => {
+  it('a tie between three same-day records picks the latest createdAt, in any order', () => {
     const a = rec('a', 'V10', '2026-03-18', '2026-03-18T09:00:00.000Z');
     const b = rec('b', 'V10', '2026-03-18', '2026-03-18T15:00:00.000Z');
     const c = rec('c', 'V10', '2026-03-18', '2026-03-18T12:00:00.000Z');
@@ -185,22 +185,22 @@ describe('splitCurrent — casos adicionais', () => {
     }
   });
 
-  it('appliedOn tem prioridade sobre createdAt: uma aplicação antiga cadastrada depois NÃO vira a vigente', () => {
+  it('appliedOn takes priority over createdAt: an old application entered later does NOT become current', () => {
     const list = [
       rec('recent-applied', 'V10', '2026-03-18', '2026-03-18T12:00:00.000Z'),
-      rec('backdated', 'V10', '2025-01-10', '2026-11-12T12:00:00.000Z'), // esquecida e lançada hoje
+      rec('backdated', 'V10', '2025-01-10', '2026-11-12T12:00:00.000Z'), // forgotten and entered today
     ];
     const { current, previous } = splitCurrent(list);
     expect(ids(current)).toEqual(['recent-applied']);
     expect(ids(previous)).toEqual(['backdated']);
   });
 
-  it('compara datas de anos diferentes corretamente (2025-12-02 < 2026-01-05)', () => {
+  it('compares dates across years correctly (2025-12-02 < 2026-01-05)', () => {
     const list = [rec('new', 'V10', '2026-01-05'), rec('old', 'V10', '2025-12-02')];
     expect(ids(splitCurrent(list).current)).toEqual(['new']);
   });
 
-  it('com 3 ou mais aplicações da mesma vacina, só uma é vigente e as outras ficam em previous na ordem da entrada', () => {
+  it('with 3 or more applications of one vaccine, only one is current and the rest go to previous in input order', () => {
     const list = [
       rec('2024', 'Antirrábica', '2024-11-28'),
       rec('2026', 'Antirrábica', '2026-11-12'),
@@ -211,7 +211,7 @@ describe('splitCurrent — casos adicionais', () => {
     expect(ids(previous)).toEqual(['2024', '2025']);
   });
 
-  it('mantém a ordem da entrada em current e em previous', () => {
+  it('keeps input order in both current and previous', () => {
     const list = [
       rec('v10-old', 'V10', '2025-03-18'),
       rec('rabies', 'Antirrábica', '2026-01-10'),
@@ -224,19 +224,19 @@ describe('splitCurrent — casos adicionais', () => {
     expect(ids(previous)).toEqual(['v10-old', 'rabies-old']);
   });
 
-  it('registros de vacinas diferentes são todos vigentes', () => {
+  it('records of different vaccines are all current', () => {
     const list = [rec('a', 'V10', '2026-01-01'), rec('b', 'Antirrábica', '2026-01-01'), rec('c', 'Giárdia', '2026-01-01')];
     const { current, previous } = splitCurrent(list);
     expect(ids(current)).toEqual(['a', 'b', 'c']);
     expect(previous).toEqual([]);
   });
 
-  it('um único registro é vigente', () => {
+  it('a single record is current', () => {
     const list = [rec('only', 'V10', '2026-01-01')];
     expect(splitCurrent(list)).toEqual({ current: list, previous: [] });
   });
 
-  it('registro do catálogo e de nome livre com o mesmo texto são vacinas separadas (cada uma tem a sua vigente)', () => {
+  it('a catalog record and a free-name record with the same text are separate vaccines (each has its own current)', () => {
     const list = [
       rec('free', 'Antirrábica', '2025-01-01'),
       rec('catalog', 'Antirrábica', '2026-01-01', undefined, 'br-dog-rabies'),
@@ -246,14 +246,14 @@ describe('splitCurrent — casos adicionais', () => {
     expect(previous).toEqual([]);
   });
 
-  it('duplicata exata (mesmo appliedOn e createdAt) é determinística: vale o primeiro da entrada', () => {
+  it('an exact duplicate (same appliedOn and createdAt) is deterministic: the first in the input wins', () => {
     const list = [rec('first', 'V10', '2026-03-18'), rec('second', 'V10', '2026-03-18')];
     const { current, previous } = splitCurrent(list);
     expect(ids(current)).toEqual(['first']);
     expect(ids(previous)).toEqual(['second']);
   });
 
-  it('não altera a lista de entrada e devolve os mesmos objetos (sem cópias)', () => {
+  it('does not mutate the input and returns the same objects (no copies)', () => {
     const list = [rec('b', 'V10', '2025-01-01'), rec('a', 'V10', '2026-01-01')];
     const snapshot = JSON.stringify(list);
     const { current, previous } = splitCurrent(list);
@@ -262,12 +262,12 @@ describe('splitCurrent — casos adicionais', () => {
     expect(previous[0]).toBe(list[0]);
   });
 
-  it('preserva campos extras do registro (tipo genérico)', () => {
+  it('keeps extra record fields (generic type)', () => {
     const list = [{ ...rec('x', 'V10', '2026-01-01'), nextDueOn: '2027-01-01', petId: 'p1' }];
     expect(splitCurrent(list).current[0].nextDueOn).toBe('2027-01-01');
   });
 
-  it('propriedade: current e previous particionam a entrada e há exatamente uma vigente por vacina', () => {
+  it('property: current and previous partition the input with exactly one current per vaccine', () => {
     const names = ['V10', 'Antirrábica', 'antirrabica ', 'Giárdia', 'Gripe Canina'];
     const list: Rec[] = [];
     for (let i = 0; i < 60; i++) {

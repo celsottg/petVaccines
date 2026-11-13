@@ -37,43 +37,43 @@ describe('worstStatus', () => {
   });
 });
 
-describe('getStatus — fronteiras em todos os dias de -3 a +35 (dueSoonDays = 30)', () => {
-  it.each(Array.from({ length: 39 }, (_, i) => i - 3))('vence em %i dia(s)', (offset) => {
+describe('getStatus — boundaries on every day from -3 to +35 (dueSoonDays = 30)', () => {
+  it.each(Array.from({ length: 39 }, (_, i) => i - 3))('due in %i day(s)', (offset) => {
     const expected: VaccinationStatus = offset < 0 ? 'overdue' : offset <= 30 ? 'due_soon' : 'ok';
     expect(getStatus(addDays(today, offset), today, 30)).toBe(expected);
   });
 });
 
-describe('getStatus — janela configurável (Task 8 permite mudar dueSoonDays)', () => {
-  it('dueSoonDays = 0: só o dia do vencimento é due_soon', () => {
+describe('getStatus — configurable window (Task 8 lets the user change dueSoonDays)', () => {
+  it('dueSoonDays = 0: only the due date is due_soon', () => {
     expect(getStatus('2026-11-11', today, 0)).toBe('overdue');
     expect(getStatus('2026-11-12', today, 0)).toBe('due_soon');
     expect(getStatus('2026-11-13', today, 0)).toBe('ok');
   });
 
-  it('dueSoonDays = 7: dia 7 é due_soon e dia 8 é ok', () => {
+  it('dueSoonDays = 7: day 7 is due_soon and day 8 is ok', () => {
     expect(getStatus('2026-11-19', today, 7)).toBe('due_soon');
     expect(getStatus('2026-11-20', today, 7)).toBe('ok');
   });
 
-  it('dueSoonDays = 90 alcança datas de outro mês e de outro ano', () => {
-    expect(getStatus('2027-02-10', today, 90)).toBe('due_soon'); // 90 dias
-    expect(getStatus('2027-02-11', today, 90)).toBe('ok'); // 91 dias
+  it('dueSoonDays = 90 reaches dates in another month and year', () => {
+    expect(getStatus('2027-02-10', today, 90)).toBe('due_soon'); // 90 days
+    expect(getStatus('2027-02-11', today, 90)).toBe('ok'); // 91 days
   });
 });
 
-describe('getStatus — virada de mês/ano e extremos', () => {
-  it('conta dias através da virada do ano', () => {
+describe('getStatus — month/year rollover and extremes', () => {
+  it('counts days across the year boundary', () => {
     expect(getStatus('2027-01-05', '2026-12-20', 30)).toBe('due_soon');
     expect(getStatus('2026-12-31', '2027-01-01', 30)).toBe('overdue');
   });
 
-  it('vencida há um ano continua overdue; daqui a 10 anos continua ok', () => {
+  it('a year past due is still overdue; 10 years ahead is still ok', () => {
     expect(getStatus('2025-11-12', today, 30)).toBe('overdue');
     expect(getStatus('2036-11-12', today, 30)).toBe('ok');
   });
 
-  it('é determinística: depende só dos argumentos, não do relógio', () => {
+  it('is deterministic: depends only on its arguments, not on the clock', () => {
     jest.useFakeTimers().setSystemTime(new Date('2030-01-01T12:00:00Z'));
     try {
       expect(getStatus('2026-12-12', today, 30)).toBe('due_soon');
@@ -83,14 +83,14 @@ describe('getStatus — virada de mês/ano e extremos', () => {
   });
 });
 
-describe('worstStatus — casos adicionais', () => {
+describe('worstStatus — additional cases', () => {
   const all: VaccinationStatus[] = ['ok', 'due_soon', 'overdue'];
 
-  it('devolve o próprio valor para lista de um item', () => {
+  it('returns the only value of a one-item list', () => {
     for (const s of all) expect(worstStatus([s])).toBe(s);
   });
 
-  it('não depende da ordem (todas as permutações de ok/due_soon/overdue)', () => {
+  it('does not depend on order (every permutation of ok/due_soon/overdue)', () => {
     const perms: VaccinationStatus[][] = [
       ['ok', 'due_soon', 'overdue'],
       ['ok', 'overdue', 'due_soon'],
@@ -102,13 +102,13 @@ describe('worstStatus — casos adicionais', () => {
     for (const p of perms) expect(worstStatus(p)).toBe('overdue');
   });
 
-  it('aceita repetidos', () => {
+  it('accepts repeated values', () => {
     expect(worstStatus(['ok', 'ok', 'ok'])).toBe('ok');
     expect(worstStatus(['due_soon', 'ok', 'due_soon'])).toBe('due_soon');
     expect(worstStatus(['overdue', 'overdue'])).toBe('overdue');
   });
 
-  it('não altera a lista recebida', () => {
+  it('does not mutate the input list', () => {
     const input: VaccinationStatus[] = ['overdue', 'ok', 'due_soon'];
     worstStatus(input);
     expect(input).toEqual(['overdue', 'ok', 'due_soon']);

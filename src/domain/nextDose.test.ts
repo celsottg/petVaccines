@@ -11,26 +11,26 @@ describe('suggestNextDue', () => {
   });
 });
 
-describe('suggestNextDue — casos adicionais', () => {
+describe('suggestNextDue — additional cases', () => {
   it.each([
     ['2026-11-12', 0, '2026-11-12'],
     ['2026-11-12', 21, '2026-12-03'],
     ['2026-11-12', 180, '2027-05-11'],
-    ['2026-01-31', 30, '2026-03-02'], // dias, não meses
-    ['2028-02-29', 365, '2029-02-28'], // aplicada em 29/02
+    ['2026-01-31', 30, '2026-03-02'], // days, not months
+    ['2028-02-29', 365, '2029-02-28'], // applied on Feb 29
     ['2028-02-29', 366, '2029-03-01'],
     ['2026-12-31', 365, '2027-12-31'],
   ])('suggestNextDue(%s, %i) = %s', (applied, interval, expected) => {
     expect(suggestNextDue(applied, interval)).toBe(expected);
   });
 
-  it('é sempre posterior à aplicação para intervalos positivos (a validação da Task 6 exige nextDueOn > appliedOn)', () => {
+  it('is always after the application date for positive intervals (Task 6 validation requires nextDueOn > appliedOn)', () => {
     for (const interval of [1, 21, 365, 730]) {
       expect(suggestNextDue('2026-11-12', interval) > '2026-11-12').toBe(true);
     }
   });
 
-  it('é igual a addDays com o intervalo', () => {
+  it('equals addDays with the interval', () => {
     expect(suggestNextDue('2026-11-12', 365)).toBe(addDays('2026-11-12', 365));
   });
 });
