@@ -38,6 +38,11 @@ class FakeFile {
     if (entry.base64 === undefined) return Promise.reject(new Error(`Cannot read: ${this.uri}`));
     return Promise.resolve(entry.base64);
   }
+  text() {
+    const entry = files.get(this.uri);
+    if (!entry) return Promise.reject(new Error(`File does not exist: ${this.uri}`));
+    return Promise.resolve(entry.text ?? '');
+  }
   create(options: { overwrite?: boolean } = {}) {
     if (files.has(this.uri) && !options.overwrite) throw new Error(`File exists: ${this.uri}`);
     files.set(this.uri, { size: 0, text: '' });
@@ -120,8 +125,8 @@ export const fakeFs = {
     files.clear();
     dirs.clear();
   },
-  addFile(uri: string, size = 100, options: { failDelete?: boolean; base64?: string; failCopy?: boolean } = {}) {
-    files.set(uri, { size, failDelete: options.failDelete, base64: options.base64, failCopy: options.failCopy });
+  addFile(uri: string, size = 100, options: { failDelete?: boolean; base64?: string; failCopy?: boolean; text?: string } = {}) {
+    files.set(uri, { size, failDelete: options.failDelete, base64: options.base64, failCopy: options.failCopy, text: options.text });
   },
   addDir(uri: string) {
     dirs.add(uri);
