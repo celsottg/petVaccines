@@ -47,9 +47,8 @@ export default function ArchivePetScreen() {
       if (issue.path[0] === 'on') setDateError(dateErrorLabel(issue.message));
       return;
     }
-    guard.run(() => {
-      archivePet(db, pet.id, result.data.reason, result.data.on);
-      router.dismissTo('/');
+    guard.run(() => archivePet(db, pet.id, result.data.reason, result.data.on), {
+      onSuccess: () => router.dismissTo('/'),
     });
   }
 

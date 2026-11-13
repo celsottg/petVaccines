@@ -153,4 +153,18 @@ describe('Novo pet screen', () => {
     expect(allPets()).toHaveLength(1);
     expect(dismissTo).toHaveBeenCalledTimes(1);
   });
+
+  it('does not report a save failure or allow a duplicate when navigation throws after the write', async () => {
+    await renderForm();
+    jest.spyOn(router, 'dismissTo').mockImplementation(() => {
+      throw new Error('navigation failed');
+    });
+    await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' })).catch(() => {});
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' })).catch(() => {});
+
+    expect(allPets()).toHaveLength(1);
+    expect(screen.queryByText('Não foi possível salvar. Tente novamente.')).toBeNull();
+  });
 });

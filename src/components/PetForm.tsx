@@ -19,14 +19,17 @@ import { useGuardedAction } from './useGuardedAction';
 interface PetFormProps {
   /** The pet being edited; omitted when creating one. */
   pet?: Pet;
+  /** Writes the pet. A throw is shown as a save error. */
   onSubmit: (input: PetInput) => void;
+  /** Runs after a successful write, typically navigation. */
+  onSaved: () => void;
   /** Extra actions shown under the fields, such as "Dar baixa". */
   children?: ReactNode;
 }
 
 type Errors = { name?: string; birthOn?: string };
 
-export function PetForm({ pet, onSubmit, children }: PetFormProps) {
+export function PetForm({ pet, onSubmit, onSaved, children }: PetFormProps) {
   const { colors, spacing } = useTheme();
   const [name, setName] = useState(pet?.name ?? '');
   const [species, setSpecies] = useState<Pet['species']>(pet?.species ?? 'dog');
@@ -57,7 +60,7 @@ export function PetForm({ pet, onSubmit, children }: PetFormProps) {
       }
     }
     setErrors(found);
-    if (result.success && !found.birthOn) guard.run(() => onSubmit(result.data));
+    if (result.success && !found.birthOn) guard.run(() => onSubmit(result.data), { onSuccess: onSaved });
   }
 
   return (

@@ -10,11 +10,9 @@ export default function NewPetScreen() {
     <>
       <Stack.Screen options={{ title: t('pets.form.newTitle') }} />
       <PetForm
-        onSubmit={(input) => {
-          createPet(db, input);
-          // Task 6 sends a new pet to its wallet; until that route exists, back to the list.
-          router.dismissTo('/');
-        }}
+        onSubmit={(input) => createPet(db, input)}
+        // Task 6 sends a new pet to its wallet; until that route exists, back to the list.
+        onSaved={() => router.dismissTo('/')}
       />
     </>
   );

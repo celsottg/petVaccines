@@ -28,10 +28,8 @@ export default function EditPetScreen() {
       <Stack.Screen options={{ title: t('pets.form.editTitle') }} />
       <PetForm
         pet={pet}
-        onSubmit={(input) => {
-          updatePet(db, pet.id, input);
-          router.dismissTo('/');
-        }}>
+        onSubmit={(input) => updatePet(db, pet.id, input)}
+        onSaved={() => router.dismissTo('/')}>
         <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
           <Button
             variant="secondary"
@@ -52,11 +50,13 @@ export default function EditPetScreen() {
         onCancel={() => setConfirmingDelete(false)}
         onConfirm={() => {
           setConfirmingDelete(false);
-          guard.run(() => {
-            // The returned file names (photo, proof photos) are removed from disk in Task 7.
-            deletePet(db, pet.id);
-            router.dismissTo('/');
-          });
+          guard.run(
+            () => {
+              // The returned file names (photo, proof photos) are removed from disk in Task 7.
+              deletePet(db, pet.id);
+            },
+            { onSuccess: () => router.dismissTo('/') },
+          );
         }}
       />
     </>

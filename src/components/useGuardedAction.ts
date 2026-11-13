@@ -12,17 +12,27 @@ export function useGuardedAction() {
   const locked = useRef(false);
   const [error, setError] = useState<string>();
 
-  function run(action: () => void, { unlockOnSuccess = false }: { unlockOnSuccess?: boolean } = {}) {
+  /**
+   * `write` is the only part whose failure is reported as a save error.
+   * `onSuccess` (navigation) runs after a successful write, outside that handling,
+   * so its failure can neither reopen the lock nor look like an unsaved write.
+   */
+  function run(
+    write: () => void,
+    { onSuccess, unlockOnSuccess = false }: { onSuccess?: () => void; unlockOnSuccess?: boolean } = {},
+  ) {
     if (locked.current) return;
     locked.current = true;
     setError(undefined);
     try {
-      action();
-      if (unlockOnSuccess) locked.current = false;
+      write();
     } catch {
       locked.current = false;
       setError(t('common.saveError'));
+      return;
     }
+    if (unlockOnSuccess) locked.current = false;
+    onSuccess?.();
   }
 
   return { run, error };
