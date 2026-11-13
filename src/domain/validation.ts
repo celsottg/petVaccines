@@ -32,3 +32,30 @@ export function archiveInputSchema(today: IsoDate) {
     on: notAfter(today).nullable(),
   });
 }
+
+const optionalText = z.string().nullish();
+
+export function vaccinationInputSchema(ctx: { today: IsoDate; birthOn: IsoDate | null }) {
+  return z
+    .object({
+      catalogId: optionalText,
+      vaccineName: z.string().trim().min(1, 'required'),
+      appliedOn: notAfter(ctx.today),
+      nextDueOn: isoDate.nullish(),
+      batch: optionalText,
+      brand: optionalText,
+      vetName: optionalText,
+      vetLicense: optionalText,
+      clinic: optionalText,
+      notes: optionalText,
+      remindersEnabled: z.boolean().optional(),
+    })
+    .superRefine((value, issues) => {
+      if (ctx.birthOn !== null && value.appliedOn < ctx.birthOn) {
+        issues.addIssue({ code: 'custom', path: ['appliedOn'], message: 'before_birth' });
+      }
+      if (value.nextDueOn && value.nextDueOn <= value.appliedOn) {
+        issues.addIssue({ code: 'custom', path: ['nextDueOn'], message: 'next_not_after' });
+      }
+    });
+}
