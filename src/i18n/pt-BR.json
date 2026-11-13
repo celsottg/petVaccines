@@ -189,5 +189,44 @@
     "title": "Não encontramos este item",
     "description": "Ele pode ter sido excluído.",
     "back": "Voltar para Meus pets"
+  },
+  "photos": {
+    "proofTitle": "Comprovante (até 3 fotos)",
+    "formHint": "Enquadre o carimbo, a data, o lote e a marca. Pode adicionar depois.",
+    "openHint": "Toque na foto para abrir em tela cheia, com zoom.",
+    "add": "Adicionar foto",
+    "thumbnail": "Abrir foto {{index}} de {{total}}",
+    "pendingThumbnail": "Foto {{index}} de {{total}}, ainda não salva. Toque para remover",
+    "source": {
+      "title": "Adicionar foto",
+      "camera": "Tirar foto",
+      "library": "Escolher da galeria"
+    },
+    "errors": {
+      "cameraDenied": "Sem acesso à câmera. Para tirar fotos, permita o uso da câmera nas configurações do aparelho.",
+      "failed": "Não foi possível processar a foto. Tente de novo."
+    },
+    "removePending": {
+      "title": "Remover foto?",
+      "message": "A foto ainda não foi salva e será descartada.",
+      "confirm": "Remover"
+    },
+    "viewer": {
+      "title": "Comprovante",
+      "imageLabel": "Foto {{index}} de {{total}} do comprovante de {{vaccine}}",
+      "delete": "Excluir foto",
+      "deleteConfirm": {
+        "title": "Excluir esta foto?",
+        "message": "A foto é apagada do aparelho. Não dá para desfazer.",
+        "confirm": "Excluir"
+      }
+    },
+    "pet": {
+      "choose": "Escolher foto",
+      "change": "Trocar foto",
+      "remove": "Remover foto",
+      "hint": "A foto é opcional. Câmera ou galeria.",
+      "avatarLabel": "Foto de {{name}}"
+    }
   }
 }

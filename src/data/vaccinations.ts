@@ -3,8 +3,9 @@ import { randomUUID } from 'expo-crypto';
 
 import { attachments, vaccinations } from '@/db/schema';
 
+import { addAttachment } from './attachments';
 import { touchLastChange } from './settings';
-import type { Db, Vaccination, VaccinationInput } from './types';
+import type { AttachmentInput, Db, Vaccination, VaccinationInput } from './types';
 
 function vaccinationFields(input: Omit<VaccinationInput, 'petId'>) {
   return {
@@ -37,6 +38,23 @@ export function createVaccination(db: Db, input: VaccinationInput): Vaccination 
       .returning()
       .get();
     touchLastChange(tx);
+    return vaccination;
+  });
+}
+
+/**
+ * Creates the record together with the proof photos prepared before it existed.
+ * One transaction: if a photo cannot be linked nothing is stored, so a retry
+ * cannot leave a duplicate record behind.
+ */
+export function createVaccinationWithPhotos(
+  db: Db,
+  input: VaccinationInput,
+  photos: Omit<AttachmentInput, 'vaccinationId'>[],
+): Vaccination {
+  return db.transaction((tx) => {
+    const vaccination = createVaccination(tx, input);
+    for (const photo of photos) addAttachment(tx, { ...photo, vaccinationId: vaccination.id });
     return vaccination;
   });
 }

@@ -10,8 +10,27 @@ import { db } from '@/db/client';
 import { pets, settings } from '@/db/schema';
 import { addDays, todayLocal } from '@/domain/dates';
 import { formatBrDate } from '@/domain/dateInput';
+import { deleteFiles } from '@/services/files';
+import { preparePetPhoto } from '@/services/photos';
 
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
+jest.mock('@/services/files', () => ({
+  photoUri: (file: string) => `file:///docs/photos/${file}`,
+  petPhotoUri: (file: string) => `file:///docs/pets/${file}`,
+  deleteFiles: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/services/photos', () => ({ preparePetPhoto: jest.fn() }));
+
+let photoSeq = 0;
+const prepared = () => {
+  photoSeq += 1;
+  const id = `00000000-0000-4000-8000-${String(photoSeq).padStart(12, '0')}`;
+  return { id, file: `${id}.jpg`, sizeBytes: 5000, width: 1200, height: 1200 };
+};
+const choosePhoto = async (button: string, source: 'Tirar foto' | 'Escolher da galeria' = 'Escolher da galeria') => {
+  await fireEvent.press(screen.getByRole('button', { name: button }));
+  await fireEvent.press(screen.getByRole('button', { name: source }));
+};
 
 const routes = { index: HomeScreen, 'pets/new': NewPetScreen, 'pets/[petId]/index': WalletScreen, archived: () => <View /> };
 const renderForm = () => renderRouter(routes, { initialUrl: '/pets/new' });
@@ -21,6 +40,7 @@ describe('Novo pet screen', () => {
   afterEach(() => jest.restoreAllMocks());
 
   beforeEach(() => {
+    jest.clearAllMocks();
     db.delete(pets).run();
     db.delete(settings).run();
   });
@@ -179,4 +199,102 @@ describe('Novo pet screen', () => {
     expect(allPets()).toHaveLength(1);
     expect(screen.queryByText('Não foi possível salvar. Tente novamente.')).toBeNull();
   });
+  describe('photo', () => {
+    it('is optional: the form offers it and saves without one', async () => {
+      await renderForm();
+
+      expect(screen.getByText('A foto é opcional. Câmera ou galeria.')).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Escolher foto' })).toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Remover foto' })).toBeNull();
+    });
+
+    it('creates the pet with the chosen photo and keeps the file', async () => {
+      const photo = prepared();
+      jest.mocked(preparePetPhoto).mockResolvedValue(photo);
+      await renderForm();
+      await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
+
+      await choosePhoto('Escolher foto', 'Tirar foto');
+      expect(preparePetPhoto).toHaveBeenCalledWith('camera', expect.any(Object));
+      expect(screen.getByLabelText('Foto de Thor')).toBeOnTheScreen();
+      expect(allPets()).toEqual([]);
+      await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+      expect(allPets()).toEqual([expect.objectContaining({ name: 'Thor', photoFile: photo.file })]);
+      expect(deleteFiles).not.toHaveBeenCalled();
+    });
+
+    it('deletes the file of a replaced photo right away', async () => {
+      const first = prepared();
+      const second = prepared();
+      jest.mocked(preparePetPhoto).mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+      await renderForm();
+      await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
+      await choosePhoto('Escolher foto');
+
+      await choosePhoto('Trocar foto');
+      await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+      expect(deleteFiles).toHaveBeenCalledWith([first.file]);
+      expect(allPets()[0].photoFile).toBe(second.file);
+    });
+
+    it('drops a photo the user removed before saving', async () => {
+      const photo = prepared();
+      jest.mocked(preparePetPhoto).mockResolvedValue(photo);
+      await renderForm();
+      await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
+      await choosePhoto('Escolher foto');
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Remover foto' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+      expect(deleteFiles).toHaveBeenCalledWith([photo.file]);
+      expect(allPets()[0].photoFile).toBeNull();
+    });
+
+    it('deletes the pending file when the user leaves without saving', async () => {
+      const photo = prepared();
+      jest.mocked(preparePetPhoto).mockResolvedValue(photo);
+      await renderForm();
+      await choosePhoto('Escolher foto');
+
+      await screen.unmount();
+
+      expect(deleteFiles).toHaveBeenCalledWith([photo.file]);
+      expect(allPets()).toEqual([]);
+    });
+
+    it('keeps the pending file when the save fails, so a retry still has the photo', async () => {
+      const photo = prepared();
+      jest.mocked(preparePetPhoto).mockResolvedValue(photo);
+      await renderForm();
+      await fireEvent.changeText(screen.getByLabelText('Nome'), 'Thor');
+      await choosePhoto('Escolher foto');
+      jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
+        throw new Error('disk full');
+      });
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+      expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+      expect(deleteFiles).not.toHaveBeenCalled();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+      expect(allPets()[0].photoFile).toBe(photo.file);
+    });
+
+    it('explains a refused camera permission and keeps the form usable', async () => {
+      jest.mocked(preparePetPhoto).mockImplementation(async (_source, options) => {
+        options?.onPermissionDenied?.();
+        return null;
+      });
+      await renderForm();
+
+      await choosePhoto('Escolher foto', 'Tirar foto');
+
+      expect(screen.getByText(/Sem acesso à câmera/)).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Escolher foto' })).toBeOnTheScreen();
+    });
+  });
+
 });

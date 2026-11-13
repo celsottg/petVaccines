@@ -18,6 +18,7 @@ import { db } from '@/db/client';
 import { maskBrDate, parseOptionalBrDate } from '@/domain/dateInput';
 import { todayLocal } from '@/domain/dates';
 import { archiveInputSchema } from '@/domain/validation';
+import { petPhotoUri } from '@/services/files';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme';
 
@@ -61,7 +62,9 @@ export default function ArchivePetScreen() {
     <SafeAreaView edges={['bottom']} style={[styles.flex, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: t('pets.archive.title') }} />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        <PetCard name={pet.name} details={petDetails(pet, todayLocal())} />
+        <PetCard name={pet.name} details={petDetails(pet, todayLocal())}
+          photoUri={pet.photoFile ? petPhotoUri(pet.photoFile) : undefined}
+        />
         <Text style={[typography.body, { color: colors.text }]}>{t('pets.archive.intro', { name: pet.name })}</Text>
         <ChoiceChips
           label={t('pets.archive.reason')}

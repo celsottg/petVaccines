@@ -3,10 +3,13 @@ import { t } from '@/i18n'; // keep first: initializes i18next before any screen
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { db } from '@/db/client';
 import migrations from '@/db/migrations/migrations';
+import { removeOrphanFiles } from '@/services/files';
 import { useTheme } from '@/theme';
 
 type MigrationsArg = Parameters<typeof useMigrations>[1];
@@ -16,6 +19,19 @@ export default function RootLayout() {
   // drizzle-orm 1.0.0-rc.5 still types `journal` as required, but drizzle-kit no
   // longer generates it and the hook only reads `migrations`.
   const { success, error } = useMigrations(db, migrations as unknown as MigrationsArg);
+
+  // Photo files that no row references (a failed delete, an unsaved form) are swept once per start. No form is
+  // open yet, so a pending photo cannot be mistaken for an orphan. A failure here must never affect startup.
+  useEffect(() => {
+    if (!success) return;
+    void (async () => {
+      try {
+        await removeOrphanFiles(db);
+      } catch {
+        // Whatever is left is swept at the next start.
+      }
+    })();
+  }, [success]);
 
   // Routes only render once the schema is up to date.
   if (error) {
@@ -37,7 +53,7 @@ export default function RootLayout() {
   if (!success) return null;
 
   return (
-    <>
+    <GestureHandlerRootView style={styles.root}>
       <StatusBar style="auto" />
       <Stack
         screenOptions={{
@@ -47,10 +63,11 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.background },
         }}
       />
-    </>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   error: { flex: 1, justifyContent: 'center' },
 });

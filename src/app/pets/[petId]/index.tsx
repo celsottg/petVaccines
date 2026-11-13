@@ -16,6 +16,7 @@ import { useWallet } from '@/data/useVaccinations';
 import { filterWallet, type WalletEntry, type WalletFilter } from '@/data/wallet';
 import { db } from '@/db/client';
 import { todayLocal } from '@/domain/dates';
+import { petPhotoUri } from '@/services/files';
 import { t } from '@/i18n';
 import { useTheme } from '@/theme';
 
@@ -41,7 +42,9 @@ export default function WalletScreen() {
     <SafeAreaView edges={['bottom']} style={[styles.flex, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: pet.name }} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        <PetCard name={pet.name} details={petDetails(pet, todayLocal())} />
+        <PetCard name={pet.name} details={petDetails(pet, todayLocal())}
+          photoUri={pet.photoFile ? petPhotoUri(pet.photoFile) : undefined}
+        />
         {active ? (
           <Button
             variant="secondary"

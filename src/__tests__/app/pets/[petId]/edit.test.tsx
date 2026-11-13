@@ -7,12 +7,31 @@ import HomeScreen from '@/app/index';
 import EditPetScreen from '@/app/pets/[petId]/edit';
 import WalletScreen from '@/app/pets/[petId]/index';
 import { archivePet, createPet } from '@/data/pets';
-import { newPet } from '@/data/testHelpers';
+import { newAttachment, newPet } from '@/data/testHelpers';
 import { createVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
 import { pets, settings, vaccinations } from '@/db/schema';
+import { deleteFiles } from '@/services/files';
+import { preparePetPhoto } from '@/services/photos';
 
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
+jest.mock('@/services/files', () => ({
+  photoUri: (file: string) => `file:///docs/photos/${file}`,
+  petPhotoUri: (file: string) => `file:///docs/pets/${file}`,
+  deleteFiles: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/services/photos', () => ({ preparePetPhoto: jest.fn() }));
+
+let photoSeq = 0;
+const prepared = () => {
+  photoSeq += 1;
+  const id = `00000000-0000-4000-8000-${String(photoSeq).padStart(12, '0')}`;
+  return { id, file: `${id}.jpg`, sizeBytes: 5000, width: 1200, height: 1200 };
+};
+const choosePhoto = async (button: string, source: 'Tirar foto' | 'Escolher da galeria' = 'Escolher da galeria') => {
+  await fireEvent.press(screen.getByRole('button', { name: button }));
+  await fireEvent.press(screen.getByRole('button', { name: source }));
+};
 
 const routes = {
   index: HomeScreen,
@@ -26,6 +45,7 @@ const allPets = () => db.select().from(pets).all();
 
 describe('Editar pet screen', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     db.delete(pets).run();
     db.delete(settings).run();
   });
@@ -165,4 +185,76 @@ describe('Editar pet screen', () => {
     }
     expect(allPets()[0]).toEqual(before);
   });
+  describe('photo', () => {
+    it('shows the current photo and keeps it when other fields change', async () => {
+      const pet = createPet(db, { name: 'Mia', species: 'cat', photoFile: 'mia.jpg' });
+      await renderEdit(pet.id);
+
+      expect(screen.getByLabelText('Foto de Mia')).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Trocar foto' })).toBeOnTheScreen();
+      await fireEvent.changeText(screen.getByLabelText('Nome'), 'Mia Maria');
+      await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+      expect(allPets()[0]).toMatchObject({ name: 'Mia Maria', photoFile: 'mia.jpg' });
+      expect(deleteFiles).not.toHaveBeenCalled();
+    });
+
+    it('replaces the photo and deletes the old file only after the save', async () => {
+      const photo = prepared();
+      jest.mocked(preparePetPhoto).mockResolvedValue(photo);
+      const pet = createPet(db, { name: 'Mia', species: 'cat', photoFile: 'mia.jpg' });
+      await renderEdit(pet.id);
+
+      await choosePhoto('Trocar foto');
+      expect(deleteFiles).not.toHaveBeenCalled();
+      expect(allPets()[0].photoFile).toBe('mia.jpg');
+      await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+      expect(allPets()[0].photoFile).toBe(photo.file);
+      expect(deleteFiles).toHaveBeenCalledTimes(1);
+      expect(deleteFiles).toHaveBeenCalledWith(['mia.jpg']);
+    });
+
+    it('removes the photo on save and deletes its file', async () => {
+      const pet = createPet(db, { name: 'Mia', species: 'cat', photoFile: 'mia.jpg' });
+      await renderEdit(pet.id);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Remover foto' }));
+      expect(deleteFiles).not.toHaveBeenCalled();
+      await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+
+      expect(allPets()[0].photoFile).toBeNull();
+      expect(deleteFiles).toHaveBeenCalledWith(['mia.jpg']);
+    });
+
+    it('leaves the current photo alone when the user leaves without saving a new one', async () => {
+      const photo = prepared();
+      jest.mocked(preparePetPhoto).mockResolvedValue(photo);
+      const pet = createPet(db, { name: 'Mia', species: 'cat', photoFile: 'mia.jpg' });
+      await renderEdit(pet.id);
+      await choosePhoto('Trocar foto');
+
+      await screen.unmount();
+
+      expect(deleteFiles).toHaveBeenCalledTimes(1);
+      expect(deleteFiles).toHaveBeenCalledWith([photo.file]);
+      expect(allPets()[0].photoFile).toBe('mia.jpg');
+    });
+
+    it('deletes the pet photo and every proof photo of its vaccinations from disk with the pet', async () => {
+      const pet = createPet(db, { name: 'Rex', species: 'dog', photoFile: 'rex.jpg' });
+      const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-01-01' });
+      const proof = newAttachment(db, record.id);
+      await renderEdit(pet.id);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir pet' }));
+      expect(deleteFiles).not.toHaveBeenCalled();
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+      expect(allPets()).toEqual([]);
+      expect(deleteFiles).toHaveBeenCalledTimes(1);
+      expect(deleteFiles).toHaveBeenCalledWith(expect.arrayContaining(['rex.jpg', proof.file]));
+    });
+  });
+
 });

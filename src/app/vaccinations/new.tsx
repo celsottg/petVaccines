@@ -3,7 +3,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { findCatalogVaccine } from '@/catalog';
 import { NotFound } from '@/components/NotFound';
 import { VaccinationForm } from '@/components/VaccinationForm';
-import { createVaccination } from '@/data/vaccinations';
+import { createVaccinationWithPhotos } from '@/data/vaccinations';
 import { usePet } from '@/data/usePets';
 import { useVaccinationDetail } from '@/data/useVaccinations';
 import { db } from '@/db/client';
@@ -30,7 +30,7 @@ export default function NewVaccinationScreen() {
       <VaccinationForm
         pet={pet}
         initialName={initialName}
-        onSubmit={(input) => createVaccination(db, { petId: pet.id, ...input })}
+        onSubmit={(input, photos) => createVaccinationWithPhotos(db, { petId: pet.id, ...input }, photos)}
         onSaved={() => router.dismissTo({ pathname: '/pets/[petId]', params: { petId: pet.id } })}
       />
     </>

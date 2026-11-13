@@ -11,8 +11,23 @@ import { createVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
 import { attachments, pets, settings, vaccinations } from '@/db/schema';
 import { addDays, todayLocal } from '@/domain/dates';
+import { deleteFiles } from '@/services/files';
+import { preparePhoto } from '@/services/photos';
 
 jest.mock('@/db/client', () => ({ db: jest.requireActual('@/data/testLive').createLiveTestDb() }));
+jest.mock('@/services/files', () => ({
+  photoUri: (file: string) => `file:///docs/photos/${file}`,
+  petPhotoUri: (file: string) => `file:///docs/pets/${file}`,
+  deleteFiles: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/services/photos', () => ({ preparePhoto: jest.fn() }));
+
+let photoSeq = 100;
+const prepared = () => {
+  photoSeq += 1;
+  const id = `00000000-0000-4000-8000-${String(photoSeq).padStart(12, '0')}`;
+  return { id, file: `${id}.jpg`, sizeBytes: 5000, width: 1600, height: 1200 };
+};
 
 const routes = {
   index: () => null,
@@ -20,12 +35,14 @@ const routes = {
   'vaccinations/[id]/index': VaccinationDetailScreen,
   'vaccinations/[id]/edit': () => <View testID="edit-vaccination" />,
   'vaccinations/new': () => <View testID="new-vaccination" />,
+  'attachments/[id]': () => <View testID="viewer" />,
 };
 const renderDetail = (id: string) => renderRouter(routes, { initialUrl: `/vaccinations/${id}` });
 const stored = () => db.select().from(vaccinations).all();
 
 describe('Detalhe da vacina screen', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     db.delete(pets).run();
     db.delete(settings).run();
   });
@@ -138,7 +155,8 @@ describe('Detalhe da vacina screen', () => {
     it('deletes the record and its attachments after confirming, then returns to the wallet', async () => {
       const pet = newPet(db, { name: 'Thor' });
       const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-01-01' });
-      newAttachment(db, record.id);
+      const first = newAttachment(db, record.id);
+      const second = newAttachment(db, record.id);
       await renderDetail(record.id);
 
       await fireEvent.press(screen.getByRole('button', { name: 'Excluir vacina' }));
@@ -146,8 +164,22 @@ describe('Detalhe da vacina screen', () => {
 
       expect(stored()).toEqual([]);
       expect(db.select().from(attachments).all()).toEqual([]);
+      expect(deleteFiles).toHaveBeenCalledTimes(1);
+      expect(deleteFiles).toHaveBeenCalledWith(expect.arrayContaining([first.file, second.file]));
       expect(screen).toHavePathname(`/pets/${pet.id}`);
       expect(screen.getByText('Nenhuma vacina registrada')).toBeOnTheScreen();
+    });
+
+    it('keeps the files when the user cancels', async () => {
+      const pet = newPet(db);
+      const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-01-01' });
+      newAttachment(db, record.id);
+      await renderDetail(record.id);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir vacina' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Cancelar' }));
+
+      expect(deleteFiles).not.toHaveBeenCalled();
     });
 
     it('does not show "not found" after a successful delete while navigation is pending', async () => {
@@ -200,6 +232,136 @@ describe('Detalhe da vacina screen', () => {
       expect(transaction).toHaveBeenCalledTimes(1);
       expect(dismissTo).toHaveBeenCalledTimes(1);
       expect(stored()).toEqual([]);
+    });
+  });
+
+  describe('proof photos', () => {
+    const record = (petId: string) => createVaccination(db, { petId, vaccineName: 'V10', appliedOn: '2026-01-01' });
+    const addPhoto = async (source: 'Tirar foto' | 'Escolher da galeria') => {
+      await fireEvent.press(screen.getByRole('button', { name: 'Adicionar foto' }));
+      await fireEvent.press(screen.getByRole('button', { name: source }));
+    };
+
+    it('lists a thumbnail per photo and opens one in the viewer', async () => {
+      const proven = record(newPet(db).id);
+      newAttachment(db, proven.id);
+      const second = newAttachment(db, proven.id);
+      await renderDetail(proven.id);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Abrir foto 2 de 2' }));
+
+      expect(screen).toHavePathname(`/attachments/${second.id}`);
+    });
+
+    it('attaches a photo taken with the camera right away, with the file details', async () => {
+      const photo = prepared();
+      jest.mocked(preparePhoto).mockResolvedValue(photo);
+      const bare = record(newPet(db).id);
+      await renderDetail(bare.id);
+      expect(screen.getByText('Sem comprovante')).toBeOnTheScreen();
+
+      await addPhoto('Tirar foto');
+
+      expect(preparePhoto).toHaveBeenCalledWith('camera', expect.any(Object));
+      expect(db.select().from(attachments).all()).toEqual([
+        expect.objectContaining({ ...photo, vaccinationId: bare.id }),
+      ]);
+      expect(screen.queryByText('Sem comprovante')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Abrir foto 1 de 1' })).toBeOnTheScreen();
+    });
+
+    it('attaches a photo chosen from the gallery', async () => {
+      jest.mocked(preparePhoto).mockResolvedValue(prepared());
+      const bare = record(newPet(db).id);
+      await renderDetail(bare.id);
+
+      await addPhoto('Escolher da galeria');
+
+      expect(preparePhoto).toHaveBeenCalledWith('library', expect.any(Object));
+      expect(db.select().from(attachments).all()).toHaveLength(1);
+    });
+
+    it('stores nothing when the user cancels or the permission is refused', async () => {
+      jest.mocked(preparePhoto).mockResolvedValue(null);
+      const bare = record(newPet(db).id);
+      await renderDetail(bare.id);
+
+      await addPhoto('Tirar foto');
+
+      expect(db.select().from(attachments).all()).toEqual([]);
+      expect(screen.getByRole('button', { name: 'Adicionar foto' })).toBeOnTheScreen();
+    });
+
+    it('explains a refused camera permission without blocking anything', async () => {
+      jest.mocked(preparePhoto).mockImplementation(async (_source, options) => {
+        options?.onPermissionDenied?.();
+        return null;
+      });
+      const bare = record(newPet(db).id);
+      await renderDetail(bare.id);
+
+      await addPhoto('Tirar foto');
+
+      expect(screen.getByText(/Sem acesso à câmera/)).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Adicionar foto' })).toBeOnTheScreen();
+    });
+
+    it('shows a message when the photo cannot be processed', async () => {
+      jest.mocked(preparePhoto).mockRejectedValue(new Error('out of memory'));
+      const bare = record(newPet(db).id);
+      await renderDetail(bare.id);
+
+      await addPhoto('Escolher da galeria');
+
+      expect(screen.getByText('Não foi possível processar a foto. Tente de novo.')).toBeOnTheScreen();
+      expect(db.select().from(attachments).all()).toEqual([]);
+    });
+
+    it('does not offer a fourth photo', async () => {
+      const full = record(newPet(db).id);
+      for (let i = 0; i < 3; i += 1) newAttachment(db, full.id);
+
+      await renderDetail(full.id);
+
+      expect(screen.getAllByRole('button', { name: /^Abrir foto/ })).toHaveLength(3);
+      expect(screen.queryByRole('button', { name: 'Adicionar foto' })).toBeNull();
+    });
+
+    it('removes the new file when the attachment row cannot be saved', async () => {
+      const photo = prepared();
+      jest.mocked(preparePhoto).mockResolvedValue(photo);
+      const bare = record(newPet(db).id);
+      await renderDetail(bare.id);
+      jest.spyOn(db, 'transaction').mockImplementationOnce(() => {
+        throw new Error('disk full');
+      });
+
+      await addPhoto('Tirar foto');
+
+      expect(deleteFiles).toHaveBeenCalledWith([photo.file]);
+      expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+    });
+
+    it('shows the photos of an archived pet but offers no way to add one', async () => {
+      const pet = newPet(db);
+      const proven = record(pet.id);
+      newAttachment(db, proven.id);
+      archivePet(db, pet.id, 'other', null);
+
+      await renderDetail(proven.id);
+
+      expect(screen.getByRole('button', { name: 'Abrir foto 1 de 1' })).toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Adicionar foto' })).toBeNull();
+    });
+
+    it('shows no photo section for an archived pet without photos', async () => {
+      const pet = newPet(db);
+      const bare = record(pet.id);
+      archivePet(db, pet.id, 'other', null);
+
+      await renderDetail(bare.id);
+
+      expect(screen.queryByText('Comprovante (até 3 fotos)')).toBeNull();
     });
   });
 
