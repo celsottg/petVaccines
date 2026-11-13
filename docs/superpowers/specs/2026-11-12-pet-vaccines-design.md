@@ -94,7 +94,7 @@ Banco SQLite local. Identificadores são UUID em texto. Datas de calendário (`*
 | `breed` | text | opcional, texto livre |
 | `sex` | text | `male`, `female` ou nulo |
 | `birth_on` | text | opcional; aceita data aproximada |
-| `photo_file` | text | opcional; nome do arquivo em `pets/` |
+| `photo_file` | text | opcional; nome do arquivo em `pets/`, `<uuid>.jpg` |
 | `status` | text | `active` ou `archived` |
 | `archived_reason` | text | `deceased`, `rehomed`, `other` ou nulo |
 | `archived_on` | text | opcional |
@@ -163,7 +163,7 @@ O conteúdo inicial do catálogo será revisado por uma veterinária de contato 
 Dentro do diretório de documentos do app:
 
 - `photos/<attachmentId>.jpg`: comprovantes.
-- `pets/<petId>.jpg`: foto de perfil do pet.
+- `pets/<arquivo>.jpg`: foto de perfil do pet. O nome do arquivo é um UUID novo a cada foto e é o valor gravado em `photo_file`; um pet novo ainda não tem id quando a foto é tirada, e um nome novo evita mostrar a foto antiga guardada em cache.
 
 Excluir um registro apaga também os arquivos correspondentes. A exclusão do banco e a dos arquivos acontecem na mesma operação de serviço; um arquivo órfão encontrado na abertura do app é removido.
 
@@ -256,8 +256,10 @@ Um arquivo `petvaccines-backup-YYYY-MM-DD.zip` com:
 ```
 data.json
 photos/<attachmentId>.jpg
-pets/<petId>.jpg
+pets/<arquivo>.jpg
 ```
+
+O nome de `pets/<arquivo>.jpg` é o valor de `photo_file` do pet (um UUID novo a cada foto).
 
 `data.json`:
 
