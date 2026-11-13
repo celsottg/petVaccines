@@ -23,10 +23,11 @@ export default function VaccinationDetailScreen() {
   const { detail, loaded } = useVaccinationDetail(id);
   const { colors, spacing, radius, typography } = useTheme();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const guard = useGuardedAction();
 
   // Also covers the moment right after the record is deleted, before navigation finishes.
-  if (!detail) return loaded ? <NotFound /> : null;
+  if (!detail) return loaded && !leaving ? <NotFound /> : null;
 
   const { vaccination, pet, status, hasAttachments } = detail;
   const active = pet.status === 'active';
@@ -106,7 +107,12 @@ export default function VaccinationDetailScreen() {
               // The returned proof-photo file names are removed from disk in Task 7.
               deleteVaccination(db, vaccination.id);
             },
-            { onSuccess: () => router.dismissTo({ pathname: '/pets/[petId]', params: { petId: pet.id } }) },
+            {
+              onSuccess: () => {
+                setLeaving(true);
+                router.dismissTo({ pathname: '/pets/[petId]', params: { petId: pet.id } });
+              },
+            },
           );
         }}
       />

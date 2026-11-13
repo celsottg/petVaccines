@@ -19,10 +19,11 @@ export default function EditPetScreen() {
   const { pet, loaded } = usePet(petId);
   const { spacing } = useTheme();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const guard = useGuardedAction();
 
   // Also covers the moment right after the pet is deleted, before navigation finishes.
-  if (!pet) return loaded ? <NotFound /> : null;
+  if (!pet) return loaded && !leaving ? <NotFound /> : null;
 
   return (
     <>
@@ -56,7 +57,12 @@ export default function EditPetScreen() {
               // The returned file names (photo, proof photos) are removed from disk in Task 7.
               deletePet(db, pet.id);
             },
-            { onSuccess: () => router.dismissTo('/') },
+            {
+              onSuccess: () => {
+                setLeaving(true);
+                router.dismissTo('/');
+              },
+            },
           );
         }}
       />

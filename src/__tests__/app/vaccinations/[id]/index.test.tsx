@@ -150,6 +150,19 @@ describe('Detalhe da vacina screen', () => {
       expect(screen.getByText('Nenhuma vacina registrada')).toBeOnTheScreen();
     });
 
+    it('does not show "not found" after a successful delete while navigation is pending', async () => {
+      const pet = newPet(db);
+      const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-01-01' });
+      await renderDetail(record.id);
+      jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir vacina' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+      expect(stored()).toEqual([]);
+      expect(screen.queryByText('Não encontramos este item')).toBeNull();
+    });
+
     it('keeps the record and shows a message when deleting fails', async () => {
       const pet = newPet(db);
       const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-01-01' });

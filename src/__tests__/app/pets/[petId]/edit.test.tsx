@@ -138,4 +138,17 @@ describe('Editar pet screen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Voltar para Meus pets' }));
     expect(screen).toHavePathname('/');
   });
+
+  it('does not show "not found" after a successful delete while navigation is pending', async () => {
+    const pet = newPet(db, { name: 'Rex' });
+    await renderEdit(pet.id);
+    jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir pet' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+
+    expect(allPets()).toEqual([]);
+    expect(screen.queryByText('Não encontramos este item')).toBeNull();
+    jest.restoreAllMocks();
+  });
 });
