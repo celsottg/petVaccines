@@ -24,6 +24,8 @@ The app interface is in Brazilian Portuguese for now; the project is structured 
 
 > Records are declared by the pet owner. They do not replace the vaccination card issued by the veterinarian.
 
+> **Vaccine catalog:** the initial content (`src/catalog/br.json`) is still awaiting veterinary review and must not be treated as clinical advice before the first release.
+
 ## Running
 
 Requirements: [Node.js](https://nodejs.org) LTS and an Android/iOS emulator or a device.
