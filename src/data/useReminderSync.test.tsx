@@ -1,4 +1,5 @@
 import { act, render } from '@testing-library/react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import { createPet } from '@/data/pets';
 import { setSetting } from '@/data/settings';
@@ -51,5 +52,38 @@ describe('useReminderSync', () => {
       db.transaction((tx) => setSetting(tx, 'reminder_offsets_days', [3]));
     });
     expect(jest.mocked(requestReminderSync).mock.calls.length).toBeGreaterThan(afterVaccination);
+  });
+
+  describe('returning to the foreground', () => {
+    let emit: (state: AppStateStatus) => void;
+    const remove = jest.fn();
+
+    beforeEach(() => {
+      remove.mockClear();
+      jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+        emit = listener;
+        return { remove };
+      });
+    });
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('requests a sync when the app becomes active again, and only then', async () => {
+      await render(<Probe />);
+      const before = jest.mocked(requestReminderSync).mock.calls.length;
+
+      await act(async () => emit('background'));
+      await act(async () => emit('inactive'));
+      expect(jest.mocked(requestReminderSync).mock.calls.length).toBe(before);
+
+      await act(async () => emit('active'));
+      expect(jest.mocked(requestReminderSync).mock.calls.length).toBe(before + 1);
+    });
+
+    it('stops listening when it unmounts', async () => {
+      const view = await render(<Probe />);
+      await view.unmount();
+      expect(remove).toHaveBeenCalledTimes(1);
+    });
   });
 });
