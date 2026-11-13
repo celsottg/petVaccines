@@ -171,6 +171,8 @@ describe('backupSchema integrity', () => {
   });
   it('rejects duplicated ids within each list', () => {
     const data = clone();
+    data.pets = data.pets.slice(0, 1);
+    data.vaccinations = data.vaccinations.slice(0, 1);
     data.pets.push({ ...data.pets[0], photo_file: null });
     data.vaccinations.push({ ...data.vaccinations[0] });
     data.attachments.push({ ...data.attachments[0], file: `${ids.attachmentB}.jpg` });

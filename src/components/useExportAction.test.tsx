@@ -35,4 +35,20 @@ describe('useExportAction', () => {
 
     expect(result.current.error).toBe('failed');
   });
+
+  it('runs the action once when start is called twice in the same tick', async () => {
+    let finish!: () => void;
+    const run = jest.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    const { result } = await renderHook(() => useExportAction(run, messages));
+
+    await act(async () => {
+      void result.current.start();
+      void result.current.start();
+    });
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(result.current.exporting).toBe(true);
+    await act(async () => finish());
+    expect(result.current.exporting).toBe(false);
+  });
 });

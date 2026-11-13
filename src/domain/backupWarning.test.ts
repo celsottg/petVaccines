@@ -38,6 +38,14 @@ describe('shouldWarnBackup', () => {
     const input = { ...base, lastBackupAt: '2026-10-29T01:00:00Z', lastChangeAt: '2026-11-10T12:00:00Z' };
     expect(shouldWarnBackup(input)).toBe(true);
   });
+  it('does not count a change made exactly at the backup instant as new', () => {
+    const at = '2026-10-01T12:00:00Z';
+    expect(shouldWarnBackup({ ...base, lastBackupAt: at, lastChangeAt: at })).toBe(false);
+  });
+  it('does not warn when never backed up and the first record is exactly 14 days old', () => {
+    expect(shouldWarnBackup({ ...base, firstRecordAt: '2026-10-29T12:00:00Z' })).toBe(false);
+    expect(shouldWarnBackup({ ...base, firstRecordAt: '2026-10-28T12:00:00Z' })).toBe(true);
+  });
   it('treats a missing last change as nothing new after a backup', () => {
     expect(shouldWarnBackup({ ...base, lastBackupAt: '2026-10-01T12:00:00Z' })).toBe(false);
   });

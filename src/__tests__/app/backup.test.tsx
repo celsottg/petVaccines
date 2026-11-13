@@ -1,9 +1,11 @@
 import { act, fireEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
 
 import BackupScreen from '@/app/backup';
 import HomeScreen from '@/app/index';
 import { getSettings, setSetting } from '@/data/settings';
+import { createVaccination } from '@/data/vaccinations';
 import { db } from '@/db/client';
 import { attachments, pets, settings, vaccinations } from '@/db/schema';
 import { exportBackup } from '@/services/backup/export';
@@ -217,16 +219,34 @@ describe('backup warning banner on Meus pets', () => {
     expect(screen.queryByRole('summary')).toBeNull();
   });
 
-  it('disappears by itself after a backup is stored, and returns when the data changes later', async () => {
+  it('disappears after a backup made on the backup screen, and returns when data changes after enough days', async () => {
     staleData();
+    exportMock.mockImplementation(async () => {
+      db.transaction((tx) => setSetting(tx, 'last_backup_at', new Date().toISOString()));
+      return { missingPhotos: 0 };
+    });
     await renderRouter(routes, { initialUrl: '/' });
     expect(screen.getByRole('summary')).toBeOnTheScreen();
 
-    await act(async () => {
-      db.transaction((tx) => setSetting(tx, 'last_backup_at', '2026-11-12T09:00:00.000Z'));
-    });
+    await fireEvent.press(screen.getByRole('button', { name: 'Fazer backup agora' }));
+    await fireEvent.press(runButton());
+    expect(await screen.findByText(/Backup gerado/)).toBeOnTheScreen();
+    await act(async () => router.back());
 
+    expect(screen).toHavePathname('/');
     expect(screen.queryByRole('summary')).toBeNull();
+
+    jest.setSystemTime(new Date(2026, 11, 2, 10)); // 20 days after the backup
+    try {
+      await act(async () => {
+        createVaccination(db, { petId: PET, vaccineName: 'Gripe', appliedOn: '2026-12-01' });
+      });
+
+      expect(screen.getByText('Seu último backup tem 20 dias')).toBeOnTheScreen();
+      expect(screen.getByText('Você registrou 1 vacina desde então. Ela só existe neste aparelho.')).toBeOnTheScreen();
+    } finally {
+      jest.setSystemTime(new Date(2026, 10, 12, 10));
+    }
   });
 
   it('uses the warning period of the settings', async () => {
