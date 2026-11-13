@@ -179,6 +179,27 @@ describe('Detalhe da vacina screen', () => {
       expect(dismissTo).not.toHaveBeenCalled();
       jest.restoreAllMocks();
       expect(stored()).toHaveLength(1);
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir vacina' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir' }));
+      expect(stored()).toEqual([]);
+    });
+
+    it('deletes once and navigates once when the confirmation is pressed twice', async () => {
+      const pet = newPet(db);
+      const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-01-01' });
+      await renderDetail(record.id);
+      const dismissTo = jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+      await fireEvent.press(screen.getByRole('button', { name: 'Excluir vacina' }));
+      const confirm = screen.getByRole('button', { name: 'Excluir' });
+      const transaction = jest.spyOn(db, 'transaction');
+
+      await fireEvent.press(confirm);
+      await fireEvent.press(confirm);
+
+      expect(transaction).toHaveBeenCalledTimes(1);
+      expect(dismissTo).toHaveBeenCalledTimes(1);
+      expect(stored()).toEqual([]);
     });
   });
 

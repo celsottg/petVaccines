@@ -1,4 +1,5 @@
 import { fireEvent } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { renderRouter, screen } from 'expo-router/testing-library';
 
 import EditVaccinationScreen from '@/app/vaccinations/[id]/edit';
@@ -173,5 +174,45 @@ describe('Editar vacina screen', () => {
     await save();
 
     expect(stored()[0]).toMatchObject({ catalogId: 'br-dog-rabies', vaccineName: 'Antirrábica' });
+  });
+
+  it('updates once when "Salvar" is pressed twice before navigation finishes', async () => {
+    const pet = newPet(db);
+    const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-03-01' });
+    await renderEdit(record.id);
+    const dismissTo = jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+    const update = jest.spyOn(db, 'transaction');
+    await fireEvent.changeText(screen.getByLabelText('Marca'), 'Vanguard');
+
+    await save();
+    await save();
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(dismissTo).toHaveBeenCalledTimes(1);
+    expect(stored()[0].brand).toBe('Vanguard');
+    jest.restoreAllMocks();
+  });
+
+  it('shows a message and does not navigate when the update fails, then saves on retry', async () => {
+    const pet = newPet(db);
+    const record = createVaccination(db, { petId: pet.id, vaccineName: 'V10', appliedOn: '2026-03-01' });
+    await renderEdit(record.id);
+    const dismissTo = jest.spyOn(router, 'dismissTo').mockImplementation(() => {});
+    await fireEvent.changeText(screen.getByLabelText('Marca'), 'Vanguard');
+    const failing = jest.spyOn(db, 'transaction').mockImplementation(() => {
+      throw new Error('disk full');
+    });
+
+    await save();
+
+    expect(screen.getByText('Não foi possível salvar. Tente novamente.')).toBeOnTheScreen();
+    expect(dismissTo).not.toHaveBeenCalled();
+    expect(stored()[0].brand).toBeNull();
+
+    failing.mockRestore();
+    await save();
+    expect(stored()[0].brand).toBe('Vanguard');
+    expect(dismissTo).toHaveBeenCalledTimes(1);
+    jest.restoreAllMocks();
   });
 });
