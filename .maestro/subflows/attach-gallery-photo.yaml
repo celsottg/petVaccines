@@ -1,0 +1,44 @@
+# ============================================================================
+# SYSTEM PHOTO PICKER STEP (called by ../register-vaccination.yaml).
+#
+# WARNING: NOT RUN. This is the part most likely to need adjusting. The picker
+# is an Android system screen, not part of the app: its texts, layout and
+# behavior differ between Android versions, Google Play services and emulator
+# images (Photo Picker on Android 13+, "Documents" UI on older images).
+# If it fails, adjust the selectors below, or run the main flow with
+# `-e WITH_PHOTO=false` to skip it.
+#
+# This file lives in a subfolder on purpose: `maestro test .maestro` only runs
+# the flows at the top level of the folder.
+# ============================================================================
+appId: com.simplifica.petvaccines
+---
+# "Adicionar foto": photos.add (ProofPhotos.tsx). Opens PhotoSourceSheet.
+- tapOn: "Adicionar foto"
+
+# "Escolher da galeria": photos.source.library (PhotoSourceSheet.tsx). The app
+# uses the system picker (launchImageLibraryAsync), so no storage permission
+# dialog is expected.
+- tapOn: "Escolher da galeria"
+
+# --- System picker (unverified) ---------------------------------------------
+# Photo Picker thumbnails expose a content description such as
+# "Photo taken on ..." or "Foto tirada em ..."; the first one is chosen. If your
+# image labels them differently, replace the regex (inspect with
+# `maestro studio`). On the older Documents UI you may also need to open
+# "Images" / "Imagens" first, and then tap the image.
+- tapOn:
+    text: "(Photo taken|Foto tirada|Photo|Foto).*"
+    index: 0
+# Some pickers need an explicit confirmation after selecting.
+- runFlow:
+    when:
+      visible: "Add|Adicionar|Done|Concluído|Select|Selecionar"
+    commands:
+      - tapOn: "Add|Adicionar|Done|Concluído|Select|Selecionar"
+
+# Back in the app the photo is resized and re-encoded, then shown as a pending
+# thumbnail. Key: photos.pendingThumbnail ("Foto 1 de 1, ainda não salva. ...")
+- extendedWaitUntil:
+    visible: "Foto 1 de 1, ainda não salva.*"
+    timeout: 20000
