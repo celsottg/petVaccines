@@ -105,6 +105,12 @@ describe('backupSchema strictness (format is permanent)', () => {
     expect(accepts({ ...clone(), extra: true })).toBe(false);
   });
 
+  it('rejects an unknown key in a vaccination row', () => {
+    const data = clone();
+    (data.vaccinations[0] as Record<string, unknown>).extra = 1;
+    expect(accepts(data)).toBe(false);
+  });
+
   it('rejects an unknown key in a pet row and in an attachment row', () => {
     const pet = clone();
     (pet.pets[0] as Record<string, unknown>).nickname = 'x';
@@ -144,6 +150,11 @@ describe('backupSchema settings', () => {
   it.each([[[]], [[7, 7]], [[-1]], [[366]], [[1.5]]])('rejects reminder_offsets_days %j', (offsets) => {
     const data = clone();
     data.settings.reminder_offsets_days = offsets as number[];
+    expect(accepts(data)).toBe(false);
+  });
+  it.each([0, 366, 1.5])('rejects backup_warning_days %j', (value) => {
+    const data = clone();
+    data.settings.backup_warning_days = value;
     expect(accepts(data)).toBe(false);
   });
   it.each([0, 366, 1.5])('rejects due_soon_days %j', (value) => {
@@ -223,6 +234,9 @@ describe('inspectBackupHeader', () => {
     expect(inspectBackupHeader({ format: 'petvaccines-backup' })).toEqual({ kind: 'not_backup' });
     expect(inspectBackupHeader({ format: 'petvaccines-backup', schemaVersion: 0 })).toEqual({ kind: 'not_backup' });
     expect(inspectBackupHeader({ format: 'petvaccines-backup', schemaVersion: '2' })).toEqual({ kind: 'not_backup' });
+    expect(inspectBackupHeader({ format: 'petvaccines-backup', schemaVersion: 1.5 })).toEqual({ kind: 'not_backup' });
+    expect(inspectBackupHeader('petvaccines-backup')).toEqual({ kind: 'not_backup' });
+    expect(inspectBackupHeader(2)).toEqual({ kind: 'not_backup' });
     expect(inspectBackupHeader(null)).toEqual({ kind: 'not_backup' });
     expect(inspectBackupHeader([1])).toEqual({ kind: 'not_backup' });
   });
