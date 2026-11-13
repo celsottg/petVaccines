@@ -100,6 +100,19 @@ becomes, in English:
 { "pets": { "add": "Add pet" } }
 ```
 
+## Releasing
+
+Only the repository owner cuts releases. The full procedure, with the criteria that must pass first, is in [docs/release-checklist.md](docs/release-checklist.md) (in Portuguese). The version and changelog part uses [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version), configured in `.versionrc.cjs`:
+
+```bash
+npm run release -- --dry-run        # shows what would be done, changing nothing
+npm run release                     # bumps the version, updates CHANGELOG.md, commits and tags
+npm run release -- --first-release  # first release only: does not change the version (already 1.0.0)
+git push --follow-tags origin main
+```
+
+The command reads the Conventional Commits since the last tag: `fix` bumps the patch, `feat` the minor, and `feat!` (or a `BREAKING CHANGE:` footer) the major. It bumps the version in `package.json`, `package-lock.json` and `expo.version` in `app.json` together, writes `CHANGELOG.md` with Portuguese section titles and creates the `chore(release): X.Y.Z` commit and the `vX.Y.Z` tag. It pushes nothing to GitHub or the store. The Android `versionCode` is managed by EAS.
+
 ## Questions
 
 Open an issue with the **Suggestion** template and describe your question.

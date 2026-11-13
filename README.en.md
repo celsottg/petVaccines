@@ -8,23 +8,38 @@ An open source mobile app to keep the vaccination card of dogs and cats, with a 
 - **No ads, tracking or analytics.**
 - Built with [Expo](https://expo.dev) and React Native, for Android and iOS.
 
-> **Status:** in development (MVP). See the [MVP design](docs/superpowers/specs/2026-11-12-pet-vaccines-design.md) and the [implementation plan](docs/superpowers/plans/2026-11-12-pet-vaccines-mvp.md) (both in Portuguese).
+> **Status:** the MVP is feature-complete and **not released yet**. The first release (Android) depends on open items: [veterinary review of the catalog (#5)](https://github.com/celsottg/petVaccines/issues/5), [reminders validation on a physical device (#12)](https://github.com/celsottg/petVaccines/issues/12), [PDF export validation on a physical device (#14)](https://github.com/celsottg/petVaccines/issues/14), the app icon and the store listing. See the [release checklist](docs/release-checklist.md), the [MVP design](docs/superpowers/specs/2026-11-12-pet-vaccines-design.md) and the [implementation plan](docs/superpowers/plans/2026-11-12-pet-vaccines-mvp.md) (all in Portuguese).
+
+Privacy: see the [privacy policy](docs/privacy-policy.en.md) ([Português](docs/privacy-policy.md)).
 
 The app interface is in Brazilian Portuguese for now; the project is structured to support other languages and countries.
 
 ## Features
 
-- Pet profiles (dogs and cats), with photo.
-- Vaccination records: date, next dose, batch, brand, veterinarian, license number (CRMV), clinic and notes.
-- Up to 3 receipt photos per record.
-- Status of each vaccine: up to date, due soon, overdue.
-- Next dose suggestion from a Brazilian vaccine catalog.
-- Local notification reminders 7 days before and on the due date.
-- PDF export of the card and backup to a `.zip` file.
+- **Pets:** dogs and cats, with photo, editing, archiving (with reason and date), reactivating and deleting.
+- **Vaccinations:** application date, next dose, batch, brand, veterinarian, license number (CRMV), clinic and notes. Registering a booster starts from the previous record.
+- **Catalog:** vaccine name and next-dose suggestion from a Brazilian vaccine catalog; free-text names are accepted too.
+- **Receipts:** up to 3 photos per record, from the camera or the gallery, viewable full screen with zoom. Photos are scaled down (at most 2048 px) and stored only on the device.
+- **Status:** up to date, due soon or overdue, on each vaccine and on each pet's badge; the wallet filters by status. The "due soon" window is adjustable.
+- **Reminders:** local notifications at 09:00, by default 7 days before and on the due date (the lead times are adjustable), with a switch per vaccine.
+- **PDF:** export of the pet's card, with the vaccinations and receipt photos.
+- **Backup:** a `.zip` file with all data and photos, a warning when the backup is stale, and restore on another device.
 
 > Records are declared by the pet owner. They do not replace the vaccination card issued by the veterinarian.
 
 > **Vaccine catalog:** the initial content (`src/catalog/br.json`) is still awaiting veterinary review and must not be treated as clinical advice before the first release.
+
+## Screenshots
+
+![My pets screen, empty, in dark mode](docs/screenshots/home-empty-dark.png)
+
+Screenshots still to be added by the repository owner in `docs/screenshots/` (expected file names, pending; they will be embedded here only once the files exist):
+
+- `home-list-light.png`: My pets with pets and status badges.
+- `wallet-light.png`: a pet's wallet with vaccinations and badges.
+- `vaccination-form-light.png`: new vaccination form with the catalog suggestions.
+- `proof-viewer-light.png`: receipt photo full screen.
+- `backup-light.png`: the backup screen.
 
 ## Running
 
@@ -48,6 +63,14 @@ The app uses native libraries that are not in Expo Go, so it runs in a [developm
 | `npm run typecheck` | type check (TypeScript) |
 | `npx expo start` | development server |
 
+### End-to-end test (Maestro)
+
+The `.maestro/register-vaccination.yaml` flow registers a pet and a vaccination with a photo. **It has not been run yet**: read `.maestro/README.md` (in Portuguese) to install Maestro, prepare the emulator and run `maestro test .maestro/register-vaccination.yaml`.
+
+### Version and changelog
+
+The version and `CHANGELOG.md` are generated from the commits (`npm run release`); see "Releasing" in the [contributing guide](CONTRIBUTING.en.md#releasing).
+
 ## Backup file
 
 A backup is a `petvaccines-backup-YYYY-MM-DD.zip` file built on the device (nothing goes through a server). It contains:
@@ -62,7 +85,7 @@ The format is defined by a single Zod schema in `src/services/backup/schema.ts`.
 
 ## Contributing
 
-Contributions are very welcome, including non-code ones: suggesting vaccines for the catalog, reviewing texts and translating. Read the [contributing guide](CONTRIBUTING.en.md) and the [code of conduct](CODE_OF_CONDUCT.md).
+Contributions are very welcome, including non-code ones: suggesting vaccines for the catalog, reviewing texts and translating. Read the [contributing guide](CONTRIBUTING.en.md) and the [code of conduct](CODE_OF_CONDUCT.md). There are [draft first-contribution issues](docs/good-first-issues.md) (in Portuguese), not yet published.
 
 ## License
 

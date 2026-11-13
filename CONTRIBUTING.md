@@ -100,6 +100,19 @@ vira, em inglês:
 { "pets": { "add": "Add pet" } }
 ```
 
+## Como lançar uma versão
+
+Só o dono do repositório lança versões. O passo a passo completo, com os critérios que precisam passar antes, está em [docs/release-checklist.md](docs/release-checklist.md). A parte de versão e changelog usa o [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version), configurado em `.versionrc.cjs`:
+
+```bash
+npm run release -- --dry-run        # mostra o que seria feito, sem alterar nada
+npm run release                     # sobe a versão, atualiza o CHANGELOG.md, faz o commit e cria a tag
+npm run release -- --first-release  # só no primeiro release: não muda a versão (já é 1.0.0)
+git push --follow-tags origin main
+```
+
+O comando lê os commits no padrão Conventional Commits desde a última tag: `fix` sobe o *patch*, `feat` sobe o *minor* e `feat!` (ou `BREAKING CHANGE:` no rodapé) sobe o *major*. Ele atualiza juntos a versão no `package.json`, no `package-lock.json` e em `expo.version` no `app.json`, escreve o `CHANGELOG.md` com seções em português e cria o commit `chore(release): X.Y.Z` e a tag `vX.Y.Z`. Ele não envia nada ao GitHub nem à loja. O `versionCode` do Android é gerenciado pelo EAS.
+
 ## Dúvidas
 
 Abra uma issue com o modelo **Sugestão** e descreva sua dúvida.
