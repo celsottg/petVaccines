@@ -1,6 +1,6 @@
 # Rascunhos de issues para a primeira contribuição
 
-> **Estes são rascunhos que aguardam a aprovação do dono do repositório. Nenhuma destas issues foi criada no GitHub.** Cada item foi conferido no código em 2026-11-13; antes de criar a issue, confirme que o problema ainda existe.
+> **Estes são rascunhos que aguardam a aprovação do dono do repositório. Nenhuma destas issues foi criada no GitHub.** Os rascunhos 1 a 6 são pequenos o bastante para uma primeira contribuição; os dois de "Próximos passos" são maiores. Cada item foi conferido no código em 2026-11-13; antes de criar a issue, confirme que o problema ainda existe.
 
 Rótulos sugeridos usam os que já existem no repositório: `good first issue`, `bug`, `enhancement`, `accessibility`, `documentation`. Como as issues do projeto são em português, o texto abaixo já está pronto para colar.
 
@@ -50,20 +50,7 @@ Se uma regra mudar (por exemplo, um ano mínimo), é fácil corrigir só uma del
 
 ---
 
-## 4. Lógica de limpeza de arquivos não salvos duplicada nos formulários
-
-**Rótulos:** `good first issue`, `enhancement`
-
-**Problema.** `src/components/PetForm.tsx` e `src/components/VaccinationForm.tsx` repetem o mesmo padrão: guardar os arquivos escolhidos e ainda não salvos em um `ref` atualizado a cada render, uma flag `saved`, e um efeito de desmontagem que chama `discardFiles` quando o formulário é deixado sem salvar. A lógica é delicada (arquivos pendentes só podem ser apagados se nenhuma linha aponta para eles) e hoje existe em dois lugares.
-
-**Pronto quando.**
-- Um gancho compartilhado (por exemplo `usePendingFiles` em `src/components/`) concentra o `ref`, a flag e a limpeza, e os dois formulários o usam.
-- Os testes de tela dos dois formulários continuam passando (`src/__tests__/app/pets/new.test.tsx`, `src/__tests__/app/pets/[petId]/edit.test.tsx`, `src/__tests__/app/vaccinations/new.test.tsx`), e o gancho ganha um teste próprio: sai sem salvar apaga, saiu depois de salvar não apaga.
-- Nenhuma mudança visível ao usuário.
-
----
-
-## 5. O selo de status pode ficar um dia desatualizado se o app ficar aberto na virada do dia
+## 4. O selo de status pode ficar um dia desatualizado se o app ficar aberto na virada do dia
 
 **Rótulos:** `bug`, `good first issue`
 
@@ -76,27 +63,11 @@ Se uma regra mudar (por exemplo, um ano mínimo), é fácil corrigir só uma del
 
 ---
 
-## 6. Visualizador de foto: toque duplo para dar zoom e alternativa para leitor de tela
+## 5. Anúncios de "Backup gerado" e "Prazo salvo" para leitores de tela só funcionam no Android
 
-**Rótulos:** `accessibility`, `enhancement`
+**Rótulos:** `accessibility`, `bug`, `good first issue`
 
-**Problema.** O visualizador do comprovante (`src/app/attachments/[id].tsx` com `src/components/ZoomableImage.tsx`) só dá zoom com o gesto de pinça (`usePinchGesture`) e arrasta com `usePanGesture`. Falta:
-
-1. o toque duplo para alternar entre o tamanho normal e o zoom, comum em visualizadores de imagem;
-2. uma alternativa para quem usa leitor de tela ou não consegue fazer gestos de dois dedos, por exemplo botões **Aproximar** e **Afastar** (com textos em `src/i18n/pt-BR.json`) ou ações de acessibilidade (`accessibilityActions`) na imagem.
-
-**Pronto quando.**
-- O toque duplo alterna o zoom e o zoom máximo/mínimo continuam respeitados (a parte pura está em `src/components/zoom.ts`, testada em `src/components/zoom.test.ts`; estenda os testes).
-- Há um caminho por botão ou ação de acessibilidade que faz o mesmo que a pinça, anunciado pelo TalkBack.
-- Os gestos só rodam em aparelho: descreva na descrição do pull request em que aparelho e versão do Android foi testado.
-
----
-
-## 7. Anúncios de "Backup gerado" e "Prazo salvo" para leitores de tela só funcionam no Android
-
-**Rótulos:** `accessibility`, `bug`
-
-**Problema.** Em `src/app/backup.tsx`, as mensagens `backup.done` ("Backup gerado...") e `backup.saved` ("Prazo salvo.") usam `accessibilityLiveRegion="polite"`, que existe apenas no Android. No iOS o VoiceOver não anuncia essas mensagens quando aparecem. O mesmo vale para os avisos em `src/components/FormField.tsx`, `src/components/ChoiceChips.tsx` e `src/components/ProofPhotos.tsx`.
+**Problema.** Em `src/app/backup.tsx`, as mensagens `backup.done` ("Backup gerado...") e `backup.saved` ("Prazo salvo.") usam `accessibilityLiveRegion="polite"`, que existe apenas no Android. No iOS o VoiceOver não anuncia essas mensagens quando aparecem. O mesmo vale para os avisos em `src/components/FormField.tsx`, `src/components/ChoiceChips.tsx`, `src/components/ProofPhotos.tsx` e `src/components/FormError.tsx` (que usa `accessibilityRole="alert"` e `accessibilityLiveRegion="assertive"`).
 
 **Pronto quando.**
 - Quando uma dessas mensagens aparece, também é chamado `AccessibilityInfo.announceForAccessibility(texto)` (de `react-native`), de preferência por um pequeno gancho reutilizável (por exemplo `useAnnounce(message)`), sem anunciar duas vezes no Android.
@@ -105,7 +76,7 @@ Se uma regra mudar (por exemplo, um ano mínimo), é fácil corrigir só uma del
 
 ---
 
-## 8. Contribuição sem código: sugerir uma vacina ou traduzir o app
+## 6. Contribuição sem código: sugerir uma vacina ou traduzir o app
 
 **Rótulos:** `good first issue`, `documentation`
 
@@ -117,6 +88,41 @@ Se uma regra mudar (por exemplo, um ano mínimo), é fácil corrigir só uma del
 **Pronto quando.**
 - A proposta de vacina foi aberta com fonte, ou o arquivo de tradução foi enviado em um pull request com todas as chaves de `pt-BR.json` traduzidas e os trechos `{{ }}` preservados.
 - Nenhuma alteração de código é necessária para a proposta ser avaliada.
+
+---
+
+---
+
+## Próximos passos (maiores do que uma primeira contribuição)
+
+Os dois rascunhos abaixo são válidos, mas pedem mais conhecimento do código (um gancho compartilhado com efeito de desmontagem, e gestos que só rodam em aparelho). Crie-os sem o rótulo `good first issue`, ou deixe para depois que houver contribuidores com mais familiaridade.
+
+### 1. Lógica de limpeza de arquivos não salvos duplicada nos formulários
+
+**Rótulos:** `enhancement` (sem `good first issue`: maior do que uma primeira contribuição)
+
+**Problema.** `src/components/PetForm.tsx` e `src/components/VaccinationForm.tsx` repetem o mesmo padrão: guardar os arquivos escolhidos e ainda não salvos em um `ref` atualizado a cada render, uma flag `saved`, e um efeito de desmontagem que chama `discardFiles` quando o formulário é deixado sem salvar. A lógica é delicada (arquivos pendentes só podem ser apagados se nenhuma linha aponta para eles) e hoje existe em dois lugares.
+
+**Pronto quando.**
+- Um gancho compartilhado (por exemplo `usePendingFiles` em `src/components/`) concentra o `ref`, a flag e a limpeza, e os dois formulários o usam.
+- Os testes de tela dos dois formulários continuam passando (`src/__tests__/app/pets/new.test.tsx`, `src/__tests__/app/pets/[petId]/edit.test.tsx`, `src/__tests__/app/vaccinations/new.test.tsx`), e o gancho ganha um teste próprio: sai sem salvar apaga, saiu depois de salvar não apaga.
+- Nenhuma mudança visível ao usuário.
+
+---
+
+### 2. Visualizador de foto: toque duplo para dar zoom e alternativa para leitor de tela
+
+**Rótulos:** `accessibility`, `enhancement` (sem `good first issue`: maior do que uma primeira contribuição)
+
+**Problema.** O visualizador do comprovante (`src/app/attachments/[id].tsx` com `src/components/ZoomableImage.tsx`) só dá zoom com o gesto de pinça (`usePinchGesture`) e arrasta com `usePanGesture`. Falta:
+
+1. o toque duplo para alternar entre o tamanho normal e o zoom, comum em visualizadores de imagem;
+2. uma alternativa para quem usa leitor de tela ou não consegue fazer gestos de dois dedos, por exemplo botões **Aproximar** e **Afastar** (com textos em `src/i18n/pt-BR.json`) ou ações de acessibilidade (`accessibilityActions`) na imagem.
+
+**Pronto quando.**
+- O toque duplo alterna o zoom e o zoom máximo/mínimo continuam respeitados (a parte pura está em `src/components/zoom.ts`, testada em `src/components/zoom.test.ts`; estenda os testes).
+- Há um caminho por botão ou ação de acessibilidade que faz o mesmo que a pinça, anunciado pelo TalkBack.
+- Os gestos só rodam em aparelho: descreva na descrição do pull request em que aparelho e versão do Android foi testado.
 
 ---
 

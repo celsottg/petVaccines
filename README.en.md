@@ -6,7 +6,7 @@ An open source mobile app to keep the vaccination card of dogs and cats, with a 
 
 - **100% local:** no account, no login, no server. Data stays on your device and the app works in airplane mode.
 - **No ads, tracking or analytics.**
-- Built with [Expo](https://expo.dev) and React Native, for Android and iOS.
+- Built with [Expo](https://expo.dev) and React Native. The first release will be for Android; iOS is planned for later.
 
 > **Status:** the MVP is feature-complete and **not released yet**. The first release (Android) depends on open items: [veterinary review of the catalog (#5)](https://github.com/celsottg/petVaccines/issues/5), [reminders validation on a physical device (#12)](https://github.com/celsottg/petVaccines/issues/12), [PDF export validation on a physical device (#14)](https://github.com/celsottg/petVaccines/issues/14), the app icon and the store listing. See the [release checklist](docs/release-checklist.md), the [MVP design](docs/superpowers/specs/2026-11-12-pet-vaccines-design.md) and the [implementation plan](docs/superpowers/plans/2026-11-12-pet-vaccines-mvp.md) (all in Portuguese).
 

@@ -14,6 +14,7 @@ O release não deve sair enquanto houver item aberto nesta lista. Marque cada it
 - [ ] [#12](https://github.com/celsottg/petVaccines/issues/12): lembretes e notificações validados em aparelho físico (itens em [Validações em aparelho pendentes](#validações-em-aparelho-pendentes)) e a issue fechada.
 - [ ] [#14](https://github.com/celsottg/petVaccines/issues/14): exportação em PDF validada em aparelho físico, com a decisão sobre o tamanho das fotos no PDF tomada, e a issue fechada.
 - [ ] Ícone do app definido (pergunta em aberto 1 da seção 16 da spec). O repositório ainda usa o ícone do modelo do Expo: `assets/images/icon.png`, `assets/images/android-icon-*.png` e `assets/images/splash-icon.png`, referenciados em `app.json`.
+- [ ] Política de privacidade: os marcadores de data de vigência e de nome do publicador preenchidos em [`privacy-policy.md`](privacy-policy.md) e [`privacy-policy.en.md`](privacy-policy.en.md), e a política publicada em uma URL pública, antes de enviar a ficha da loja.
 - [ ] Ficha da loja criada no Play Console (nome "Vacinas do Pet", descrições, capturas de tela, ícone, categoria, classificação etária).
 
 ## Critérios de aceite
@@ -24,7 +25,7 @@ Reprodução da tabela da spec, uma linha por critério. A coluna "Método da sp
 |---|---|---|---|---|---|
 | O tutor cadastra, edita, dá baixa, reativa e exclui um pet | Manual | 1. Em **Meus pets**, toque em **Adicionar pet**, preencha o nome e salve: abre a carteira do pet.<br>2. Na carteira, **Editar pet**, mude a raça e salve.<br>3. Em **Editar pet**, **Dar baixa**: escolha o motivo, **Confirmar baixa**. O pet sai de Meus pets e aparece em **Carteiras encerradas**.<br>4. Em Carteiras encerradas, **Reativar**: o pet volta a Meus pets.<br>5. Em **Editar pet**, **Excluir pet** e confirme: o pet e as vacinas dele somem. | | | |
 | O tutor registra uma vacina e a vê na carteira com o status correto | Manual e teste unitário | 1. Na carteira de um pet, **Nova vacina**; toque na sugestão "Antirrábica", deixe a data de hoje e **Salvar**.<br>2. O cartão aparece na carteira com o selo "Em dia" (a próxima dose sugerida é daqui a um ano).<br>3. Teste unitário: `npx jest src/domain/status.test.ts src/domain/current.test.ts`. | | | |
-| O status muda para "vence em breve" e "vencida" nas datas certas | Teste unitário com datas simuladas | 1. Teste unitário: `npx jest src/domain/status.test.ts` (roda no fuso `America/Sao_Paulo`).<br>2. Conferência no aparelho, opcional: edite uma vacina para ter a próxima dose daqui a 5 dias (selo "Vence em 5 dias"); em **Ajustes e sobre**, o prazo de "vence em breve" decide a partir de quantos dias o selo aparece; edite para uma data passada (selo "Vencida há N dias"). | | | |
+| O status muda para "vence em breve" e "vencida" nas datas certas | Teste unitário com datas simuladas | 1. Teste unitário: `npx jest src/domain/status.test.ts` (roda no fuso `America/Sao_Paulo`).<br>2. Conferência no aparelho, opcional: edite uma vacina para ter a próxima dose daqui a 5 dias (selo "Vence em 5 dias"). Isso depende de o prazo de "vence em breve" ser de pelo menos 5 dias (o padrão é 30, em **Ajustes e sobre**); com um prazo menor o selo só aparece mais perto da data; edite para uma data passada (selo "Vencida há N dias"). | | | |
 | A foto entra pela câmera e pela galeria, e abre em tela cheia com zoom | Aparelho real | 1. Em **Nova vacina**, **Adicionar foto** > **Tirar foto**: autorize a câmera, fotografe, confirme. A miniatura aparece.<br>2. **Adicionar foto** > **Escolher da galeria**: escolha uma imagem (seletor do sistema, sem pedido de permissão de galeria).<br>3. Salve. Abra o detalhe da vacina e toque em uma miniatura: abre em tela cheia.<br>4. Dê zoom com o gesto de pinça e arraste a imagem.<br>5. Repita a foto de perfil em **Adicionar pet**/**Editar pet** (**Escolher foto**).<br>6. Negue a permissão da câmera em outro teste: o app mostra o aviso e continua funcionando. | | | |
 | O arquivo salvo tem no máximo 2048 px e nenhum dado de GPS | Inspeção do arquivo | 1. Tire uma foto com a localização ligada no aparelho (ou ponha na galeria uma imagem que tenha GPS nos metadados) e anexe-a a uma vacina.<br>2. Em **Backup**, **Fazer backup agora** e envie o `.zip` ao computador.<br>3. No computador: `unzip petvaccines-backup-*.zip -d backup && identify -format '%f %wx%h\n' backup/photos/*.jpg backup/pets/*.jpg` (maior lado de cada foto no máximo 2048) e `exiftool -gps:all backup/photos/*.jpg backup/pets/*.jpg` (não deve listar nenhuma etiqueta GPS).<br>4. Confirme que a foto original tinha GPS (`exiftool -gps:all original.jpg`); senão o teste não prova nada. | | | |
 | O lembrete chega 7 dias antes e no dia | Aparelho real com data ajustada | Ver [Validações em aparelho pendentes](#validações-em-aparelho-pendentes), grupo "Entrega das notificações" (issue [#12](https://github.com/celsottg/petVaccines/issues/12)). | | | |
@@ -151,16 +152,22 @@ A issue também lista a repetição dos envios no iOS; isso pertence ao release 
 - Chave de conta de serviço do Google para o `eas submit` (Expo: Credentials > Android > Service credentials, ou `npx eas-cli@latest credentials --platform android`).
 - Ficha da loja completa (ver Bloqueios).
 - URL pública da política de privacidade, a partir de [`privacy-policy.md`](privacy-policy.md) e [`privacy-policy.en.md`](privacy-policy.en.md). A data de vigência da política (marcada como pendente no arquivo) precisa estar preenchida antes de publicar.
-- Formulário de segurança dos dados (*Data safety*) respondido de forma coerente com a política: o app não coleta nem compartilha dados do usuário, não tem conta, e os dados ficam só no aparelho. O app declara a permissão `INTERNET` pelo modelo do Expo e não faz requisições (ver o procedimento acima): responda ao formulário conforme o resultado da captura de rede. A política cita câmera, fotos (seletor do sistema) e notificações locais.
-- Decisão sobre o backup automático do Android: o manifesto gerado pelo Expo traz `android:allowBackup="true"` (padrão do Expo; `android.allowBackup` não está configurado no `app.json`). Com isso o sistema pode copiar os dados do app para a conta Google do usuário, o que a política descreve na seção "Cópia de segurança do sistema Android". Decida se mantém (e a política fica como está) ou se define `"allowBackup": false` em `android` no `app.json` (e remove essa seção das duas políticas). Confirme o valor real no manifesto do build de produção.
+- Formulário de segurança dos dados (*Data safety*) do Play Console, coerente com a política. Com o backup automático do Android desligado (`allowBackup: false` no `app.json`) e sem uso de rede pelo app, as respostas são "nenhum dado coletado" e "nenhum dado compartilhado". Confirme isso só depois de passar a linha de rede da tabela de critérios. A permissão `INTERNET` é declarada pelo framework e vai aparecer na página da loja, mesmo sem uso: a política explica isso.
+- Verificação do manifesto do **build de produção** (obrigatória): baixe o `.aab` da página do build no EAS e confira que `android:allowBackup` é `false` e quais permissões estão declaradas, comparando com a lista da política:
+
+  ```bash
+  bundletool dump manifest --bundle=app.aab | grep -E "allowBackup|uses-permission"
+  ```
+
+  (ou, com um APK: `aapt dump xmltree app.apk AndroidManifest.xml | grep -iE "allowBackup|permission"`). Se `allowBackup` não for `false` ou se aparecer uma permissão que a política não cita, corrija antes de publicar.
 - Versão em `app.json`: `1.0.0`. O `versionCode` do Android é gerenciado pelo EAS (`appVersionSource: remote` com `autoIncrement` no perfil `production` do `eas.json`).
 
 ### Ordem dos passos
 
 1. Todos os itens de **Bloqueios** marcados.
 2. Rodar o fluxo ponta a ponta ([`.maestro/README.md`](../.maestro/README.md)) e corrigir o que falhar. Ele ainda não foi executado.
-3. Na `main` atualizada: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test -- --ci`.
-4. Gerar o build de produção (`.aab`):
+3. No commit que será lançado, com a árvore de trabalho limpa (o build do EAS é gerado a partir dele): `npm ci`, `npm run lint`, `npm run typecheck`, `npm test -- --ci`.
+4. Gerar o build de produção (`.aab`) nesse mesmo commit:
 
    ```bash
    npx eas-cli@latest build -p android --profile production
@@ -172,7 +179,7 @@ A issue também lista a repetição dos envios no iOS; isso pertence ao release 
    npx eas-cli@latest submit -p android --profile production
    ```
 
-   A faixa padrão do EAS Submit é a de teste interno. Se o app ainda estiver em rascunho no Play Console, termine a configuração pendente lá.
+   O que a documentação do EAS Submit para Android diz (consultada em 2026-11-13): o `eas submit` exige o app já criado no Play Console, com `android.package` definido e um `.aab`; o comando padrão cria o primeiro release na faixa de teste interno, e o app fica em rascunho no Play Console até a ficha da loja e as tarefas de configuração serem concluídas; o EAS precisa de uma chave de conta de serviço do Google (a documentação não lista os papéis necessários: crie a conta de serviço no Google Cloud, convide-a no Play Console e dê acesso ao app), que fica guardada na conta Expo por identificador de pacote. O `eas.json` deste repositório **não** tem `serviceAccountKeyPath`, então o comando pede a chave de forma interativa (em modo não interativo ele falha). A documentação também oferece o caminho manual: criar o app e a ficha no Play Console e fazer o primeiro envio do `.aab` à faixa de teste interno por lá. Se o envio automático do primeiro release falhar, use o caminho manual e deixe o `eas submit` para os releases seguintes.
 6. Instalar o build pela faixa de teste interno em aparelho real e executar a tabela de [Critérios de aceite](#critérios-de-aceite), inclusive o procedimento de rede, preenchendo resultado, data e observações.
 7. Com todos os critérios aprovados, criar o commit e a tag da versão (ver [CONTRIBUTING.md](../CONTRIBUTING.md#como-lançar-uma-versão)):
 
@@ -192,4 +199,5 @@ Para os releases seguintes use apenas `npm run release` (a versão sobe sozinha 
 - Acompanhar issues e avaliações da loja; transformar relatos de bug em issues.
 - Registrar no `CHANGELOG.md` e nas issues o que ficou para a próxima versão.
 - Preparar o release do iOS: os mesmos critérios em aparelho real da Apple (etapa 9 da spec) e a repetição dos testes marcados como iOS nas issues #12 e #14.
+- Opcional: avaliar a remoção de permissões declaradas e não usadas (por exemplo, o acesso legado ao armazenamento e a `INTERNET`) com `android.blockedPermissions` no `app.json`. Só tente com um aparelho à mão: a remoção pode quebrar o seletor de fotos em versões antigas do Android, e deve ser seguida de nova passagem pela tabela de critérios.
 - Se a política de privacidade mudar, atualizar a data de vigência e republicar a URL.

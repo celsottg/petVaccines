@@ -6,7 +6,7 @@ App móvel de código aberto para guardar a carteira de vacinação de cães e g
 
 - **100% local:** sem conta, sem login, sem servidor. Os dados ficam só no seu aparelho e o app funciona em modo avião.
 - **Sem anúncios, rastreamento ou analytics.**
-- Feito com [Expo](https://expo.dev) e React Native, para Android e iOS.
+- Feito com [Expo](https://expo.dev) e React Native. O primeiro release será para Android; o iOS está planejado para depois.
 
 > **Status:** o MVP está com todas as funções implementadas e ainda **não foi lançado**. O primeiro release (Android) depende de pendências abertas: [revisão veterinária do catálogo (#5)](https://github.com/celsottg/petVaccines/issues/5), [validação dos lembretes em aparelho físico (#12)](https://github.com/celsottg/petVaccines/issues/12), [validação do PDF em aparelho físico (#14)](https://github.com/celsottg/petVaccines/issues/14), o ícone do app e a ficha da loja. Veja o [checklist de release](docs/release-checklist.md), o [design do MVP](docs/superpowers/specs/2026-11-12-pet-vaccines-design.md) e o [plano de implementação](docs/superpowers/plans/2026-11-12-pet-vaccines-mvp.md).
 
