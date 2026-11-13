@@ -225,6 +225,12 @@ describe('Carteira do pet screen', () => {
       const pet = newPet(db);
       await renderWallet(pet.id);
       expect(screen.queryByRole('button', { name: 'Exportar PDF' })).toBeNull();
+
+      await act(async () => {
+        vaccinate(pet.id, 'V10', '2026-03-18');
+      });
+
+      expect(screen.getByRole('button', { name: 'Exportar PDF' })).toBeOnTheScreen();
     });
 
     it('generates the PDF from the stored records and opens the share sheet', async () => {
