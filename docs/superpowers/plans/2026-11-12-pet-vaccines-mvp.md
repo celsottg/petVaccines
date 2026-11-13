@@ -78,16 +78,16 @@ Testes ficam ao lado do arquivo testado, como `status.test.ts`. A exceção são
 **Interfaces:**
 - Produces: `theme` (`colors.light`, `colors.dark`, `spacing`, `radius`, `typography`) e hook `useTheme()`; `t()` do i18next já inicializado em `pt-BR`; scripts `npm test`, `npm run lint`, `npm run typecheck`.
 
-- [ ] **Step 1:** Conferir a SDK estável atual em expo.dev/changelog. Criar o projeto com `npx create-expo-app@latest` em uma pasta temporária e mover o conteúdo para a raiz, sem tocar em `docs/` e `.git`. Remover as telas de exemplo do template.
-- [ ] **Step 2:** Em `app.json`: `name` "Vacinas do Pet", `slug` "petvaccines", `android.package` e `ios.bundleIdentifier` iguais a `com.simplifica.petvaccines`, `userInterfaceStyle` "automatic". Ativar `strict` no `tsconfig.json`.
-- [ ] **Step 3:** Configurar Jest com `jest-expo` e React Native Testing Library, fixando `TZ=America/Sao_Paulo` no script de teste para que os testes de data rodem no fuso do público do app. Escrever o teste `src/__tests__/app/index.test.tsx`: renderiza a tela inicial e encontra o texto `Meus pets`.
-- [ ] **Step 4:** Rodar `npx jest`. Esperado: FAIL, a tela ainda não existe.
-- [ ] **Step 5:** Criar `src/theme/index.ts` (primária `#5B4BC4` no claro; pares de cor para `ok`, `dueSoon`, `overdue`, `neutral`), `src/i18n/` e `src/app/index.tsx` com o título vindo de `t('pets.title')` e um estado vazio com o botão "Adicionar pet".
-- [ ] **Step 6:** Rodar `npx jest`, `npx tsc --noEmit` e `npx expo lint`. Esperado: tudo passa.
-- [ ] **Step 7:** Escrever os arquivos do projeto aberto. `README.md` (português, padrão) e `README.en.md` têm, no topo, um link um para o outro; o mesmo vale para `CONTRIBUTING.md` e `CONTRIBUTING.en.md`. O CONTRIBUTING explica como rodar o projeto, o padrão de commits, como propor uma vacina para o catálogo e como traduzir, sem exigir programação nos dois últimos. `LICENSE` é o texto integral da GPLv3.
-- [ ] **Step 8:** `ci.yml` roda, em cada PR e em `main`: `npm ci`, lint, typecheck e testes. `eas.json` com os perfis `development`, `preview` e `production`.
-- [ ] **Step 9:** Gerar um development build para Android (`npx expo run:android` ou EAS) e confirmar que o app abre em "Meus pets".
-- [ ] **Step 10:** Commit: `chore: scaffold expo project with theme, i18n, ci and community files`.
+- [x] **Step 1:** Conferir a SDK estável atual em expo.dev/changelog. Criar o projeto com `npx create-expo-app@latest` em uma pasta temporária e mover o conteúdo para a raiz, sem tocar em `docs/` e `.git`. Remover as telas de exemplo do template.
+- [x] **Step 2:** Em `app.json`: `name` "Vacinas do Pet", `slug` "petvaccines", `android.package` e `ios.bundleIdentifier` iguais a `com.simplifica.petvaccines`, `userInterfaceStyle` "automatic". Ativar `strict` no `tsconfig.json`.
+- [x] **Step 3:** Configurar Jest com `jest-expo` e React Native Testing Library, fixando `TZ=America/Sao_Paulo` no script de teste para que os testes de data rodem no fuso do público do app. Escrever o teste `src/__tests__/app/index.test.tsx`: renderiza a tela inicial e encontra o texto `Meus pets`.
+- [x] **Step 4:** Rodar `npx jest`. Esperado: FAIL, a tela ainda não existe.
+- [x] **Step 5:** Criar `src/theme/index.ts` (primária `#5B4BC4` no claro; pares de cor para `ok`, `dueSoon`, `overdue`, `neutral`), `src/i18n/` e `src/app/index.tsx` com o título vindo de `t('pets.title')` e um estado vazio com o botão "Adicionar pet".
+- [x] **Step 6:** Rodar `npx jest`, `npx tsc --noEmit` e `npx expo lint`. Esperado: tudo passa.
+- [x] **Step 7:** Escrever os arquivos do projeto aberto. `README.md` (português, padrão) e `README.en.md` têm, no topo, um link um para o outro; o mesmo vale para `CONTRIBUTING.md` e `CONTRIBUTING.en.md`. O CONTRIBUTING explica como rodar o projeto, o padrão de commits, como propor uma vacina para o catálogo e como traduzir, sem exigir programação nos dois últimos. `LICENSE` é o texto integral da GPLv3.
+- [x] **Step 8:** `ci.yml` roda, em cada PR e em `main`: `npm ci`, lint, typecheck e testes. `eas.json` com os perfis `development`, `preview` e `production`.
+- [x] **Step 9:** Gerar um development build para Android (`npx expo run:android` ou EAS) e confirmar que o app abre em "Meus pets".
+- [x] **Step 10:** Commit: `chore: scaffold expo project with theme, i18n, ci and community files`.
 
 ### Task 2: Regras puras de datas, status e registro vigente
 
@@ -105,7 +105,7 @@ Testes ficam ao lado do arquivo testado, como `status.test.ts`. A exceção são
   - `splitCurrent<T extends { catalogId: string | null; vaccineName: string; appliedOn: IsoDate; createdAt: string }>(list: T[]): { current: T[]; previous: T[] }`
   - `suggestNextDue(appliedOn: IsoDate, boosterIntervalDays: number): IsoDate`
 
-- [ ] **Step 1: Escrever os testes que falham**
+- [x] **Step 1: Escrever os testes que falham**
 
 ```ts
 // dates.test.ts
@@ -136,10 +136,10 @@ expect(vaccineKey({ catalogId: 'br-dog-rabies', vaccineName: 'Raiva' }))
 expect(suggestNextDue('2026-11-12', 365)).toBe('2027-11-12');
 ```
 
-- [ ] **Step 2:** Rodar `npx jest src/domain`. Esperado: FAIL, funções não definidas.
-- [ ] **Step 3:** Implementar. Em `dates.ts`, fazer a aritmética em UTC ao meio-dia para não depender de horário de verão; `todayLocal` usa os componentes locais de `Date`. Em `vaccineKey`, normalizar com `normalize('NFD')`, remover os diacríticos, `trim` e minúsculas; prefixar com `catalog:` ou `name:` para as duas origens não colidirem.
-- [ ] **Step 4:** Rodar `npx jest src/domain`. Esperado: PASS.
-- [ ] **Step 5:** Commit: `feat(domain): add date, status and current-record rules`.
+- [x] **Step 2:** Rodar `npx jest src/domain`. Esperado: FAIL, funções não definidas.
+- [x] **Step 3:** Implementar. Em `dates.ts`, fazer a aritmética em UTC ao meio-dia para não depender de horário de verão; `todayLocal` usa os componentes locais de `Date`. Em `vaccineKey`, normalizar com `normalize('NFD')`, remover os diacríticos, `trim` e minúsculas; prefixar com `catalog:` ou `name:` para as duas origens não colidirem.
+- [x] **Step 4:** Rodar `npx jest src/domain`. Esperado: PASS.
+- [x] **Step 5:** Commit: `feat(domain): add date, status and current-record rules`.
 
 ### Task 3: Banco, migrações e camada de dados
 
