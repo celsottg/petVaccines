@@ -138,4 +138,40 @@ describe('Editar vacina screen', () => {
     expect(screen.getByText('Não encontramos este item')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Salvar' })).toBeNull();
   });
+
+  describe('a record whose stored name differs from the catalog name', () => {
+    const renamed = (petId: string) =>
+      createVaccination(db, { petId, catalogId: 'br-dog-rabies', vaccineName: 'Raiva', appliedOn: '2026-03-01' });
+
+    it('keeps the stored catalog id and name when only another field changes', async () => {
+      const record = renamed(newPet(db, { species: 'dog' }).id);
+      await renderEdit(record.id);
+
+      await fireEvent.changeText(screen.getByLabelText('Lote'), 'L9');
+      await save();
+
+      expect(stored()[0]).toMatchObject({ catalogId: 'br-dog-rabies', vaccineName: 'Raiva', batch: 'L9' });
+    });
+
+    it('lets the catalog lookup decide once the name is changed', async () => {
+      const record = renamed(newPet(db, { species: 'dog' }).id);
+      await renderEdit(record.id);
+
+      await fireEvent.changeText(screen.getByLabelText('Vacina'), 'Leptospirose');
+      await save();
+
+      expect(stored()[0]).toMatchObject({ catalogId: null, vaccineName: 'Leptospirose' });
+    });
+  });
+
+  it('stores the catalog id and spelling when a free-name record is renamed to a catalog name', async () => {
+    const pet = newPet(db, { species: 'dog' });
+    const record = createVaccination(db, { petId: pet.id, vaccineName: 'Raiva', appliedOn: '2026-03-01' });
+    await renderEdit(record.id);
+
+    await fireEvent.changeText(screen.getByLabelText('Vacina'), ' antirrabica ');
+    await save();
+
+    expect(stored()[0]).toMatchObject({ catalogId: 'br-dog-rabies', vaccineName: 'Antirrábica' });
+  });
 });

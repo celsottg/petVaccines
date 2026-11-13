@@ -54,8 +54,11 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
   const [errors, setErrors] = useState<Errors>({});
   const guard = useGuardedAction();
 
-  // The typed name decides whether this is a catalog vaccine, picked from the list or not.
-  const catalogId = catalogMatcher(pet.species)(normalizeVaccineName(name));
+  // An edit that leaves the name alone keeps the record's own catalog link; otherwise the typed name decides.
+  const nameUnchanged = vaccination !== undefined && name === vaccination.vaccineName;
+  const catalogId = nameUnchanged
+    ? (vaccination.catalogId ?? undefined)
+    : catalogMatcher(pet.species)(normalizeVaccineName(name));
   const catalogVaccine = catalogId ? findCatalogVaccine(catalogId) : undefined;
   const appliedDate = parseOptionalBrDate(applied);
   const suggested =
@@ -89,8 +92,8 @@ export function VaccinationForm({ pet, vaccination, initialName, onSubmit, onSav
 
     const input: VaccinationFields = {
       // A name that matches the catalog is stored as that catalog item, with the catalog's spelling.
-      catalogId: catalogVaccine?.id ?? null,
-      vaccineName: catalogVaccine?.name ?? result.data.vaccineName,
+      catalogId: catalogId ?? null,
+      vaccineName: nameUnchanged ? vaccination.vaccineName : (catalogVaccine?.name ?? result.data.vaccineName),
       appliedOn: result.data.appliedOn,
       nextDueOn: result.data.nextDueOn ?? null,
       batch: blankToNull(batch),
