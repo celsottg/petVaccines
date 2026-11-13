@@ -71,6 +71,15 @@ describe('app.json local reminders (Task 8)', () => {
   });
 });
 
+describe('app.json Android backup (Task 12)', () => {
+  // Android Auto Backup would copy the database and the proof photos to the tutor's Google account,
+  // which breaks the spec's rule that all data stays on the device (the privacy policy says so too).
+  // The Expo default is true, so it must be switched off explicitly.
+  it('turns Android Auto Backup off', () => {
+    expect(json('app.json').expo.android.allowBackup).toBe(false);
+  });
+});
+
 describe('tsconfig.json', () => {
   it('has strict mode enabled', () => {
     expect(json('tsconfig.json').compilerOptions.strict).toBe(true);
