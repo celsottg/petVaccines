@@ -5,12 +5,105 @@
       "title": "Nenhum pet cadastrado",
       "description": "Cadastre seu cão ou gato para guardar a carteira de vacinação dele."
     },
-    "add": "Adicionar pet"
+    "add": "Adicionar pet",
+    "archivedLink": "Carteiras encerradas ({{count}})",
+    "species": {
+      "dog": "Cão",
+      "cat": "Gato"
+    },
+    "age": {
+      "years_one": "{{count}} ano",
+      "years_other": "{{count}} anos",
+      "months_one": "{{count}} mês",
+      "months_other": "{{count}} meses",
+      "lessThanMonth": "Menos de 1 mês"
+    },
+    "badge": {
+      "ok": "Vacinas em dia",
+      "due_soon_one": "{{count}} vacina vence em breve",
+      "due_soon_other": "{{count}} vacinas vencem em breve",
+      "overdue_one": "{{count}} vacina vencida",
+      "overdue_other": "{{count}} vacinas vencidas",
+      "none": "Sem vacinas registradas"
+    },
+    "form": {
+      "newTitle": "Novo pet",
+      "editTitle": "Editar pet",
+      "name": "Nome",
+      "species": "Espécie",
+      "breed": "Raça (opcional)",
+      "breedHint": "Texto livre. \"SRD\" para sem raça definida.",
+      "sex": "Sexo (opcional)",
+      "male": "Macho",
+      "female": "Fêmea",
+      "birth": "Data de nascimento (opcional)",
+      "birthPlaceholder": "DD/MM/AAAA",
+      "birthHint": "Se não souber o dia exato, informe uma data aproximada.",
+      "save": "Salvar",
+      "archive": "Dar baixa",
+      "delete": "Excluir pet",
+      "errors": {
+        "nameRequired": "Informe o nome do pet.",
+        "dateInvalid": "Data inválida. Use o formato DD/MM/AAAA.",
+        "dateFuture": "A data não pode ser futura."
+      },
+      "deleteConfirm": {
+        "title": "Excluir {{name}}?",
+        "message": "Isso apaga o pet, todas as vacinas e todos os comprovantes dele. Não dá para desfazer.",
+        "confirm": "Excluir"
+      }
+    },
+    "archive": {
+      "title": "Dar baixa",
+      "intro": "A carteira de {{name}} será encerrada, mas nada é apagado. O histórico e os comprovantes continuam disponíveis para consulta.",
+      "reason": "Motivo",
+      "date": "Data (opcional)",
+      "whatHappens": "O que acontece",
+      "effects": {
+        "reminders": {
+          "label": "Lembretes",
+          "value": "Cancelados"
+        },
+        "badges": {
+          "label": "Selos de vencimento",
+          "value": "Deixam de aparecer"
+        },
+        "list": {
+          "label": "Lista de pets",
+          "value": "Vai para \"Carteiras encerradas\""
+        },
+        "history": {
+          "label": "Histórico e PDF",
+          "value": "Continuam disponíveis"
+        },
+        "backup": {
+          "label": "Backup",
+          "value": "Continua incluído"
+        }
+      },
+      "reactivateHint": "Você pode reativar a carteira a qualquer momento.",
+      "confirm": "Confirmar baixa"
+    },
+    "reasons": {
+      "deceased": "Faleceu",
+      "rehomed": "Mudou de tutor",
+      "other": "Outro"
+    },
+    "archived": {
+      "title": "Carteiras encerradas",
+      "empty": "Nenhuma carteira encerrada.",
+      "reasonOn": "{{reason}} em {{date}}",
+      "reactivate": "Reativar",
+      "reactivateLabel": "Reativar a carteira de {{name}}"
+    }
   },
   "database": {
     "error": {
       "title": "Não foi possível abrir o banco de dados",
       "description": "Houve um erro ao preparar os dados do aplicativo. Feche e abra o app novamente. Se o problema continuar, abra uma issue no repositório com a mensagem abaixo."
     }
+  },
+  "common": {
+    "cancel": "Cancelar"
   }
 }
