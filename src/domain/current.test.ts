@@ -1,4 +1,36 @@
-import { splitCurrent, vaccineKey } from './current';
+import { normalizeVaccineName, splitCurrent, vaccineKey, type CatalogMatcher } from './current';
+
+const match: CatalogMatcher = (n) => (n === 'antirrabica' ? 'br-dog-rabies' : undefined);
+
+describe('normalizeVaccineName', () => {
+  it('collapses inner spaces, trims, lowercases and drops accents', () => {
+    expect(normalizeVaccineName('  Gripe   Canina ')).toBe('gripe canina');
+    expect(normalizeVaccineName('ANTIRRÁBICA')).toBe('antirrabica');
+  });
+
+  it('does not merge words that are separated by a space', () => {
+    expect(normalizeVaccineName('gripecanina')).not.toBe(normalizeVaccineName('gripe canina'));
+  });
+});
+
+describe('vaccineKey with catalog matching', () => {
+  it('resolves a free name equal to a catalog item to that item', () => {
+    expect(vaccineKey({ catalogId: null, vaccineName: 'Antirrábica' }, match)).toBe(
+      vaccineKey({ catalogId: 'br-dog-rabies', vaccineName: 'Raiva' }, match),
+    );
+  });
+
+  it('falls back to the normalized name without a matcher or without a match', () => {
+    expect(vaccineKey({ catalogId: null, vaccineName: 'Antirrábica' })).toBe('name:antirrabica');
+    expect(vaccineKey({ catalogId: null, vaccineName: 'Leptospirose' }, match)).toBe('name:leptospirose');
+  });
+
+  it('collapses inner spaces', () => {
+    expect(vaccineKey({ catalogId: null, vaccineName: 'Gripe  Canina' })).toBe(
+      vaccineKey({ catalogId: null, vaccineName: 'gripe canina' }),
+    );
+  });
+});
 
 describe('vaccineKey', () => {
   it('treats free names that differ only in case, accents or spaces as the same vaccine', () => {
@@ -116,7 +148,7 @@ describe('vaccineKey — additional cases', () => {
     );
   });
 
-  it('keeps inner spaces: only the ends are ignored (spec)', () => {
+  it('does not merge words: "gripe canina" and "gripecanina" differ', () => {
     expect(vaccineKey({ catalogId: null, vaccineName: 'gripe canina' })).not.toBe(
       vaccineKey({ catalogId: null, vaccineName: 'gripecanina' }),
     );
@@ -133,7 +165,7 @@ describe('vaccineKey — additional cases', () => {
     );
   });
 
-  it('a catalog record and a free-name record with the same text are NOT the same vaccine (spec: same catalog_id, or free name without catalog_id)', () => {
+  it('without a matcher, a catalog record and a free-name record with the same text are NOT the same vaccine', () => {
     expect(vaccineKey({ catalogId: 'br-dog-rabies', vaccineName: 'Antirrábica' })).not.toBe(
       vaccineKey({ catalogId: null, vaccineName: 'Antirrábica' }),
     );
@@ -151,6 +183,18 @@ describe('vaccineKey — additional cases', () => {
   it('is idempotent: same record, same key', () => {
     const v = { catalogId: null, vaccineName: ' Antirrábica ' };
     expect(vaccineKey(v)).toBe(vaccineKey({ ...v }));
+  });
+});
+
+describe('splitCurrent with catalog matching', () => {
+  it('groups a free-name record with the catalog item it matches', () => {
+    const list = [
+      rec('free-2025', 'Antirrábica', '2025-12-02'),
+      rec('catalog-2026', 'Raiva', '2026-12-01', undefined, 'br-dog-rabies'),
+    ];
+    const { current, previous } = splitCurrent(list, match);
+    expect(ids(current)).toEqual(['catalog-2026']);
+    expect(ids(previous)).toEqual(['free-2025']);
   });
 });
 
@@ -236,7 +280,7 @@ describe('splitCurrent — additional cases', () => {
     expect(splitCurrent(list)).toEqual({ current: list, previous: [] });
   });
 
-  it('a catalog record and a free-name record with the same text are separate vaccines (each has its own current)', () => {
+  it('without a matcher, a catalog record and a free-name record with the same text are separate vaccines', () => {
     const list = [
       rec('free', 'Antirrábica', '2025-01-01'),
       rec('catalog', 'Antirrábica', '2026-01-01', undefined, 'br-dog-rabies'),
@@ -278,9 +322,9 @@ describe('splitCurrent — additional cases', () => {
     const { current, previous } = splitCurrent(list);
     expect(current.length + previous.length).toBe(list.length);
     expect(new Set([...ids(current), ...ids(previous)]).size).toBe(list.length);
-    const keys = current.map(vaccineKey);
+    const keys = current.map((c) => vaccineKey(c));
     expect(new Set(keys).size).toBe(keys.length);
-    expect(keys.length).toBe(new Set(list.map(vaccineKey)).size);
+    expect(keys.length).toBe(new Set(list.map((r) => vaccineKey(r))).size);
     for (const p of previous) {
       const winner = current.find((c) => vaccineKey(c) === vaccineKey(p))!;
       expect(winner.appliedOn >= p.appliedOn).toBe(true);
