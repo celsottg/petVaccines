@@ -33,7 +33,7 @@ export function ChoiceChips<T extends string>({ label, options, value, onChange,
                 borderRadius: radius.pill,
                 paddingHorizontal: spacing.md,
                 paddingVertical: spacing.sm,
-                minHeight: 40,
+                minHeight: 48,
                 justifyContent: 'center',
               }}>
               <Text style={[typography.label, { color: selected ? colors.onPrimary : colors.text }]}>

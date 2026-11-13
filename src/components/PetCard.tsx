@@ -24,7 +24,7 @@ export function PetCard({ name, details, note, badge, onPress, children }: PetCa
 
   const content = (
     <>
-      <View style={styles.row}>
+      <View style={[styles.row, { gap: spacing.md }]}>
         <View
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
@@ -64,7 +64,7 @@ export function PetCard({ name, details, note, badge, onPress, children }: PetCa
 
 const styles = StyleSheet.create({
   card: { borderWidth: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  row: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1 },
   name: { fontWeight: '700' },
