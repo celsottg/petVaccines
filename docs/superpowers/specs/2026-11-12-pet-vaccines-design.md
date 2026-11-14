@@ -330,7 +330,7 @@ Sem login: o app abre em "Meus pets". O canvas de referência mostra as telas 1 
 - Selos de status usam cor e texto, nunca só cor.
 - Contraste adequado, fontes que respeitam o tamanho do sistema e rótulos para leitores de tela.
 - Toda exclusão pede confirmação.
-- Cor principal: violeta `#5B4BC4`. **[decisão]** O restante do visual do canvas (tipografia, espaçamentos, formas) é provisório, e o ícone ainda não foi definido. **[aberto]**
+- Cor principal: violeta `#5B4BC4`. **[decisão]** O restante do visual do canvas (tipografia, espaçamentos, formas) é provisório. O ícone está definido na seção 16.
 
 ## 12. Testes e critérios de aceite
 
@@ -415,10 +415,11 @@ Cada etapa termina em algo que funciona no aparelho.
 
 ## 16. Perguntas em aberto
 
-1. **Ícone do app.**
+Nenhuma no momento.
 
 ### Resolvidas
 
+- **Ícone do app:** carteirinha com pata e selo de confirmação sobre fundo violeta escuro `#2E1065`, também usado como fundo do ícone adaptativo e da splash. **[decisão]**
 - **Nome do app exibido nas lojas:** "Vacinas do Pet". **[decisão]** "petVaccines" é o nome do repositório.
 - **Cor principal:** violeta `#5B4BC4`. **[decisão]** Ela não colide com os selos de status (verde, amarelo, vermelho). No modo escuro, links e textos na cor principal usam um tom mais claro, escolhido por quem implementa, mantendo contraste mínimo de 4,5:1.
 - **Identificador do pacote:** `com.simplifica.petvaccines`. O domínio "simplifica" é **[decisão]**; a composição do identificador é **[escolha]**. Ele não pode mudar depois da publicação.

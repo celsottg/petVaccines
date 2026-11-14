@@ -71,6 +71,15 @@ describe('app.json local reminders (Task 8)', () => {
   });
 });
 
+describe('app.json Android backup (Task 12)', () => {
+  // Android Auto Backup would copy the database and the proof photos to the tutor's Google account,
+  // which breaks the spec's rule that all data stays on the device (the privacy policy says so too).
+  // The Expo default is true, so it must be switched off explicitly.
+  it('turns Android Auto Backup off', () => {
+    expect(json('app.json').expo.android.allowBackup).toBe(false);
+  });
+});
+
 describe('tsconfig.json', () => {
   it('has strict mode enabled', () => {
     expect(json('tsconfig.json').compilerOptions.strict).toBe(true);
@@ -94,6 +103,41 @@ describe('package.json', () => {
   it('has the testing stack installed', () => {
     expect(pkg.devDependencies['jest-expo']).toBeDefined();
     expect(pkg.devDependencies['@testing-library/react-native']).toBeDefined();
+  });
+});
+
+describe('release tooling (Task 12)', () => {
+  // The release script bumps these three files together; it must never run from a test.
+  // A CommonJS config file read by the release tool, so it is loaded the same way here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const config = require('../../.versionrc.cjs');
+  const files = (config.bumpFiles as { filename: string }[]).map((entry) => entry.filename);
+
+  it('exposes a release script and keeps the tool as a dev dependency', () => {
+    const pkg = json('package.json');
+    expect(pkg.scripts.release).toBe('commit-and-tag-version');
+    expect(pkg.devDependencies['commit-and-tag-version']).toBeDefined();
+    expect(pkg.dependencies['commit-and-tag-version']).toBeUndefined();
+  });
+
+  it('bumps package.json, package-lock.json and expo.version in app.json together', () => {
+    expect(files).toEqual(expect.arrayContaining(['package.json', 'package-lock.json', 'app.json']));
+  });
+
+  it('reads and writes expo.version in app.json without touching the rest', () => {
+    const updater = config.bumpFiles.find((entry: { filename: string }) => entry.filename === 'app.json').updater;
+    const raw = read('app.json');
+    expect(updater.readVersion(raw)).toBe(json('app.json').expo.version);
+    const written = JSON.parse(updater.writeVersion(raw, '9.9.9'));
+    expect(written.expo.version).toBe('9.9.9');
+    expect({ ...written, expo: { ...written.expo, version: undefined } }).toEqual({
+      ...json('app.json'),
+      expo: { ...json('app.json').expo, version: undefined },
+    });
+  });
+
+  it('keeps package.json and app.json on the same version', () => {
+    expect(json('app.json').expo.version).toBe(json('package.json').version);
   });
 });
 

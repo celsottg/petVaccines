@@ -45,6 +45,7 @@
     "@types/react": "~19.3.0",
     "babel-plugin-inline-import": "^3.0.0",
     "better-sqlite3": "^13.1.1",
+    "commit-and-tag-version": "^13.3.0",
     "drizzle-kit": "1.0.0-rc.5",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
@@ -58,7 +59,8 @@
     "ios": "expo run:ios",
     "test": "jest",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release": "commit-and-tag-version"
   },
   "private": true,
   "license": "GPL-3.0-only",

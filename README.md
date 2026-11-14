@@ -6,23 +6,38 @@ App móvel de código aberto para guardar a carteira de vacinação de cães e g
 
 - **100% local:** sem conta, sem login, sem servidor. Os dados ficam só no seu aparelho e o app funciona em modo avião.
 - **Sem anúncios, rastreamento ou analytics.**
-- Feito com [Expo](https://expo.dev) e React Native, para Android e iOS.
+- Feito com [Expo](https://expo.dev) e React Native. O primeiro release será para Android; o iOS está planejado para depois.
 
-> **Status:** em desenvolvimento (MVP). Veja o [design do MVP](docs/superpowers/specs/2026-11-12-pet-vaccines-design.md) e o [plano de implementação](docs/superpowers/plans/2026-11-12-pet-vaccines-mvp.md).
+> **Status:** o MVP está com todas as funções implementadas e ainda **não foi lançado**. O primeiro release (Android) depende de pendências abertas: [revisão veterinária do catálogo (#5)](https://github.com/celsottg/petVaccines/issues/5), [validação dos lembretes em aparelho físico (#12)](https://github.com/celsottg/petVaccines/issues/12), [validação do PDF em aparelho físico (#14)](https://github.com/celsottg/petVaccines/issues/14), o ícone do app e a ficha da loja. Veja o [checklist de release](docs/release-checklist.md), o [design do MVP](docs/superpowers/specs/2026-11-12-pet-vaccines-design.md) e o [plano de implementação](docs/superpowers/plans/2026-11-12-pet-vaccines-mvp.md).
+
+Privacidade: veja a [política de privacidade](docs/privacy-policy.md) ([English](docs/privacy-policy.en.md)).
 
 ## O que o app faz
 
-- Cadastro de pets (cães e gatos), com foto.
-- Registro de vacinas: data, próxima dose, lote, marca, veterinário, CRMV, clínica e observações.
-- Até 3 fotos de comprovante por registro.
-- Status de cada vacina: em dia, vence em breve, vencida.
-- Sugestão da próxima dose a partir de um catálogo brasileiro de vacinas.
-- Lembretes por notificação local 7 dias antes e no dia.
-- Exportação da carteira em PDF e backup em arquivo `.zip`.
+- **Pets:** cadastro de cães e gatos, com foto, edição, baixa (com motivo e data), reativação e exclusão.
+- **Vacinas:** data de aplicação, próxima dose, lote, marca, veterinário, CRMV, clínica e observações. Registrar um reforço parte do registro anterior.
+- **Catálogo:** sugestão do nome e da próxima dose a partir de um catálogo brasileiro de vacinas; também aceita nome livre.
+- **Comprovantes:** até 3 fotos por registro, pela câmera ou pela galeria, com visualização em tela cheia e zoom. As fotos são reduzidas (no máximo 2048 px) e guardadas só no aparelho.
+- **Status:** em dia, vence em breve ou vencida, em cada vacina e no selo de cada pet; a carteira filtra por situação. O prazo de "vence em breve" é ajustável.
+- **Lembretes:** notificações locais às 09:00, por padrão 7 dias antes e no dia da próxima dose (as antecedências são ajustáveis), com um interruptor por vacina.
+- **PDF:** exportação da carteira do pet, com as vacinas e as fotos dos comprovantes.
+- **Backup:** arquivo `.zip` com todos os dados e fotos, aviso quando o backup está desatualizado e restauração em outro aparelho.
 
 > O registro é declaratório, feito pelo tutor. Não substitui a carteira de vacinação emitida pelo veterinário.
 
 > **Catálogo de vacinas:** o conteúdo inicial (`src/catalog/br.json`) ainda aguarda revisão veterinária e não deve ser tratado como recomendação clínica antes do primeiro release.
+
+## Capturas de tela
+
+![Tela Meus pets, vazia, no modo escuro](docs/screenshots/home-empty-dark.png)
+
+Capturas ainda a adicionar pelo dono do repositório em `docs/screenshots/` (nomes esperados, pendentes; só depois de existirem os arquivos elas entram aqui como imagens):
+
+- `home-list-light.png`: Meus pets com pets e selos de status.
+- `wallet-light.png`: carteira de um pet com as vacinas e os selos.
+- `vaccination-form-light.png`: formulário de nova vacina com as sugestões do catálogo.
+- `proof-viewer-light.png`: foto do comprovante em tela cheia.
+- `backup-light.png`: tela de backup.
 
 ## Como rodar
 
@@ -46,6 +61,14 @@ O app usa bibliotecas nativas que não existem no Expo Go, por isso roda em um [
 | `npm run typecheck` | checagem de tipos (TypeScript) |
 | `npx expo start` | servidor de desenvolvimento |
 
+### Teste ponta a ponta (Maestro)
+
+O fluxo `.maestro/register-vaccination.yaml` cadastra um pet e uma vacina com foto. **Ainda não foi executado**: leia `.maestro/README.md` para instalar o Maestro, preparar o emulador e rodar com `maestro test .maestro/register-vaccination.yaml`.
+
+### Versão e changelog
+
+A versão e o `CHANGELOG.md` são gerados a partir dos commits (`npm run release`); veja "Como lançar uma versão" no [guia de contribuição](CONTRIBUTING.md#como-lançar-uma-versão).
+
 ## Arquivo de backup
 
 O backup é um arquivo `petvaccines-backup-AAAA-MM-DD.zip` gerado no próprio aparelho (nada passa por servidor). Dentro dele:
@@ -60,7 +83,7 @@ O formato é definido por um único esquema Zod, em `src/services/backup/schema.
 
 ## Como contribuir
 
-Contribuições são muito bem-vindas, inclusive sem programar: sugerir vacinas para o catálogo, revisar textos e traduzir. Leia o [guia de contribuição](CONTRIBUTING.md) e o [código de conduta](CODE_OF_CONDUCT.md).
+Contribuições são muito bem-vindas, inclusive sem programar: sugerir vacinas para o catálogo, revisar textos e traduzir. Leia o [guia de contribuição](CONTRIBUTING.md) e o [código de conduta](CODE_OF_CONDUCT.md). Há [rascunhos de issues para a primeira contribuição](docs/good-first-issues.md), ainda não publicados.
 
 ## Licença
 

@@ -1,0 +1,121 @@
+# ============================================================================
+# END-TO-END FLOW: register a pet and a vaccination with a proof photo.
+#
+# WARNING: THIS FLOW HAS NOT BEEN RUN. Maestro was not available when it was
+# written, so every selector below was derived by reading the screens and
+# src/i18n/pt-BR.json, never by watching the app. Run it on an Android emulator
+# and fix whatever fails BEFORE trusting it (see .maestro/README.md).
+# ============================================================================
+#
+# What it covers (spec section 12, "Ponta a ponta"): add the dog "Thor", open
+# its wallet, register "Antirrábica" from the catalog suggestions with today's
+# date, attach one gallery photo, save, and check the wallet card shows the
+# "Em dia" status and no "Sem comprovante" badge.
+#
+# No date is typed: the "Data de aplicação" field starts as today
+# (VaccinationForm.tsx: useState(formatBrDate(... ?? todayLocal()))) and the
+# "Próxima dose" field is filled by the catalog suggestion.
+#
+# Variants (env flag WITH_PHOTO, default "true"):
+#   maestro test .maestro/register-vaccination.yaml
+#       full flow, including the system photo picker (step 6).
+#   maestro test -e WITH_PHOTO=false .maestro/register-vaccination.yaml
+#       skips the photo and asserts the "Sem comprovante" badge instead. Use it
+#       when the system photo picker of your emulator image cannot be driven.
+#
+# Text selectors are regular expressions in Maestro and also match the
+# accessibility label (Android content description), so a few selectors use
+# ".*...*" to survive the label that merges several texts of one card.
+#
+# Prerequisite for the full flow: at least one image in the emulator gallery.
+# Build prerequisite: a build WITHOUT the expo-dev-client launcher (see README).
+appId: com.simplifica.petvaccines
+env:
+  WITH_PHOTO: ${WITH_PHOTO || "true"}
+---
+# 1. Clean state: erases the database and the photos of the installed app.
+- launchApp:
+    clearState: true
+
+# 2. Meus pets, empty. Key: pets.empty.title
+- extendedWaitUntil:
+    visible: "Nenhum pet cadastrado"
+    timeout: 30000
+
+# 3. Add the pet. Key: pets.add (Button, src/app/index.tsx)
+- tapOn: "Adicionar pet"
+
+# 4. Pet form (src/components/PetForm.tsx).
+#    The text input is targeted by id, because the label Text and the TextInput
+#    both read "Nome" (pets.form.name). FormField.tsx gives every input
+#    testID "input-" + the label without accents ("input-nome"); tests in
+#    src/components/FormField.test.tsx.
+#    "Cão": pets.species.dog (ChoiceChips radio; "dog" is already the default,
+#    tapping it makes the intent explicit).
+- tapOn:
+    id: "input-nome"
+- inputText: "Thor"
+- hideKeyboard
+- tapOn: "Cão"
+#    "Salvar": pets.form.save (footer Button).
+- tapOn: "Salvar"
+
+# 5. Wallet of Thor, empty (src/app/pets/[petId]/index.tsx).
+#    "Nenhuma vacina registrada": vaccinations.wallet.empty.title
+#    "Nova vacina": vaccinations.wallet.add (footer Button)
+- extendedWaitUntil:
+    visible: "Nenhuma vacina registrada"
+    timeout: 10000
+- tapOn: "Nova vacina"
+
+# 6. Vaccine form (src/components/VaccinationForm.tsx).
+#    Catalog suggestion chip, accessibilityLabel = catalog name
+#    (VaccineNameField.tsx). The dog catalog has "Antirrábica"
+#    (src/catalog/br.json); the chip fills the name field.
+- extendedWaitUntil:
+    visible: "Data de aplicação"   # vaccinations.form.appliedOn
+    timeout: 10000
+- tapOn: "Antirrábica"
+
+# 7. Proof photo from the gallery. ISOLATED in its own file because the system
+#    photo picker differs between Android versions and emulator images.
+- runFlow:
+    when:
+      true: ${WITH_PHOTO == 'true'}
+    file: subflows/attach-gallery-photo.yaml
+
+# 8. Save. Key: vaccinations.form.save (footer Button).
+- tapOn: "Salvar"
+
+# 9. Notification permission. The request is made asynchronously after "Salvar"
+#    (ensureNotificationPermission), only on Android 13+, and only while the
+#    permission is undetermined. Maestro's launchApp grants permissions by
+#    default (docs: "permissions are allowed by default"), in which case no
+#    dialog appears. As a bounded fallback, tapOn waits for the system button
+#    (text is the system's: "Allow" or "Permitir") and, being optional, lets the
+#    flow go on when it never shows up (Android 12 and earlier, or already
+#    granted). It cannot hang and is not an immediate one-shot check.
+- tapOn:
+    text: "Allow|Permitir"
+    optional: true
+
+# 10. Back in the wallet, the new card (src/components/VaccinationCard.tsx).
+#     The card is one Pressable whose accessibilityLabel joins name, dates and
+#     badges ("Antirrábica, Aplicada em ..., Em dia"), hence the ".*" regexes.
+#     "Em dia": vaccinations.status.ok
+- extendedWaitUntil:
+    visible: "Antirrábica.*"
+    timeout: 15000
+- assertVisible: ".*Em dia.*"
+
+# 11. Proof badge. Key: vaccinations.card.noReceipt
+- runFlow:
+    when:
+      true: ${WITH_PHOTO == 'true'}
+    commands:
+      - assertNotVisible: ".*Sem comprovante.*"
+- runFlow:
+    when:
+      true: ${WITH_PHOTO != 'true'}
+    commands:
+      - assertVisible: ".*Sem comprovante.*"

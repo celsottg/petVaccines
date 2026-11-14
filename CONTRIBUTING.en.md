@@ -100,6 +100,25 @@ becomes, in English:
 { "pets": { "add": "Add pet" } }
 ```
 
+## Releasing
+
+Only the repository owner cuts releases. The full procedure, with the criteria that must pass first, is in [docs/release-checklist.md](docs/release-checklist.md) (in Portuguese). The version and changelog part uses [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version), configured in `.versionrc.cjs`:
+
+**Warning: these are two different commands.**
+
+- **First release only (1.0.0):** `npm run release -- --first-release`. Keeps version 1.0.0 (already written in the files), writes `CHANGELOG.md`, makes the `chore(release): 1.0.0` commit and creates the `v1.0.0` tag.
+- **From the next releases on:** `npm run release`. The version is bumped from the commits.
+
+Running plain `npm run release` **before** the first release produces version 1.1.0, not 1.0.0 (there are `feat` commits and no tag yet). Before either one, check the result with `--dry-run`, which changes nothing:
+
+```bash
+npm run release -- --first-release --dry-run   # first release
+npm run release -- --dry-run                    # later releases
+git push --follow-tags origin main              # after the real command
+```
+
+Releasing requires Node 22 or later. The command reads the Conventional Commits since the last tag: `fix` bumps the patch, `feat` the minor, and `feat!` (or a `BREAKING CHANGE:` footer) the major. It bumps the version in `package.json`, `package-lock.json` and `expo.version` in `app.json` together, writes `CHANGELOG.md` with Portuguese section titles and creates the `chore(release): X.Y.Z` commit and the `vX.Y.Z` tag. It pushes nothing to GitHub or the store. The Android `versionCode` is managed by EAS.
+
 ## Questions
 
 Open an issue with the **Suggestion** template and describe your question.
