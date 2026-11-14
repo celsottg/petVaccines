@@ -12,8 +12,8 @@ O release não deve sair enquanto houver item aberto nesta lista. Marque cada it
 
 - [ ] [#5](https://github.com/celsottg/petVaccines/issues/5): revisão veterinária do catálogo inicial (`src/catalog/br.json`) concluída e a issue fechada. Os `id`s do catálogo ficam permanentes depois do primeiro release.
 - [ ] [#12](https://github.com/celsottg/petVaccines/issues/12): lembretes e notificações validados em aparelho físico (itens em [Validações em aparelho pendentes](#validações-em-aparelho-pendentes)) e a issue fechada.
-- [ ] [#14](https://github.com/celsottg/petVaccines/issues/14): exportação em PDF validada em aparelho físico, com a decisão sobre o tamanho das fotos no PDF tomada, e a issue fechada.
-- [ ] Ícone do app definido (pergunta em aberto 1 da seção 16 da spec). O repositório ainda usa o ícone do modelo do Expo: `assets/images/icon.png`, `assets/images/android-icon-*.png` e `assets/images/splash-icon.png`, referenciados em `app.json`.
+- [X] [#14](https://github.com/celsottg/petVaccines/issues/14): exportação em PDF validada em aparelho físico, com a decisão sobre o tamanho das fotos no PDF tomada, e a issue fechada.
+- [X] Ícone do app definido (pergunta em aberto 1 da seção 16 da spec): carteirinha com pata e selo de confirmação sobre fundo `#2E1065`, em `assets/images/icon.png`, `assets/images/android-icon-*.png`, `assets/images/splash-icon.png` e `assets/images/favicon.png`, referenciados em `app.json`. Falta só conferir o ícone adaptativo, o ícone temático (monocromático) e a splash em aparelho físico, num novo development build.
 - [ ] Política de privacidade: os marcadores de data de vigência e de nome do publicador preenchidos em [`privacy-policy.md`](privacy-policy.md) e [`privacy-policy.en.md`](privacy-policy.en.md), e a política publicada em uma URL pública, antes de enviar a ficha da loja.
 - [ ] Ficha da loja criada no Play Console (nome "Vacinas do Pet", descrições, capturas de tela, ícone, categoria, classificação etária).
 
