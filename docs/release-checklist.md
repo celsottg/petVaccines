@@ -15,6 +15,7 @@ O release não deve sair enquanto houver item aberto nesta lista. Marque cada it
 - [X] [#14](https://github.com/celsottg/petVaccines/issues/14): exportação em PDF validada em aparelho físico, com a decisão sobre o tamanho das fotos no PDF tomada, e a issue fechada.
 - [X] Ícone do app definido (pergunta em aberto 1 da seção 16 da spec): carteirinha com pata e selo de confirmação sobre fundo `#2E1065`, em `assets/images/icon.png`, `assets/images/android-icon-*.png`, `assets/images/splash-icon.png` e `assets/images/favicon.png`, referenciados em `app.json`. Falta só conferir o ícone adaptativo, o ícone temático (monocromático) e a splash em aparelho físico, num novo development build.
 - [ ] Política de privacidade: os marcadores de data de vigência e de nome do publicador preenchidos em [`privacy-policy.md`](privacy-policy.md) e [`privacy-policy.en.md`](privacy-policy.en.md), e a política publicada em uma URL pública, antes de enviar a ficha da loja.
+- [ ] Permissões removidas, conferidas em Android 12 ou anterior: o acesso ao armazenamento compartilhado (`READ_EXTERNAL_STORAGE` e `WRITE_EXTERNAL_STORAGE`) foi bloqueado no `app.json`, e ele só valia nessas versões. Em um aparelho ou emulador com Android 12 ou anterior, confira que **Escolher da galeria**, **Tirar foto**, **Exportar PDF**, **Fazer backup agora** e **Importar backup de um arquivo** funcionam. Em 27/11/2026 isso foi conferido só em um emulador com Android 17 (galeria, PDF e backup; a câmera não). Se algo falhar, retire as duas permissões da lista `android.blockedPermissions` e atualize a política.
 - [ ] Ficha da loja criada no Play Console (nome "Vacinas do Pet", descrições, capturas de tela, ícone, categoria, classificação etária).
 
 ## Critérios de aceite
@@ -76,7 +77,7 @@ O resultado esperado é uma única linha: `REPOSITORY_URL` em `src/app/settings.
 
 **A única exceção legítima.** Em **Ajustes e sobre**, **Abrir o repositório no navegador** abre `https://github.com/celsottg/petVaccines` no navegador do sistema. O tráfego **do navegador** para o GitHub depois desse toque é esperado e não reprova. Faça esse toque somente no fim, depois de anotar o resultado do restante, ou separe a captura.
 
-**Observação sobre permissões.** O manifesto padrão do Expo declara a permissão `INTERNET`, mesmo que o app não faça requisições. Ela não é prova de uso, mas aparece na página de permissões da loja e em inspeções do APK: o que prova a ausência de rede é a revisão do código e esta captura.
+**Observação sobre permissões.** O manifesto do app declara as permissões `INTERNET` e `ACCESS_NETWORK_STATE`, mesmo que o app não faça requisições (elas vêm do framework e de bibliotecas, e não foram bloqueadas porque o build de desenvolvimento precisa da rede). Ela não é prova de uso, mas aparece na página de permissões da loja e em inspeções do APK: o que prova a ausência de rede é a revisão do código e esta captura.
 
 ## Validações em aparelho pendentes
 
@@ -153,7 +154,7 @@ A issue também lista a repetição dos envios no iOS; isso pertence ao release 
 - Ficha da loja completa (ver Bloqueios).
 - URL pública da política de privacidade, a partir de [`privacy-policy.md`](privacy-policy.md) e [`privacy-policy.en.md`](privacy-policy.en.md). A data de vigência da política (marcada como pendente no arquivo) precisa estar preenchida antes de publicar.
 - Formulário de segurança dos dados (*Data safety*) do Play Console, coerente com a política. Com o backup automático do Android desligado (`allowBackup: false` no `app.json`) e sem uso de rede pelo app, as respostas são "nenhum dado coletado" e "nenhum dado compartilhado". Confirme isso só depois de passar a linha de rede da tabela de critérios. A permissão `INTERNET` é declarada pelo framework e vai aparecer na página da loja, mesmo sem uso: a política explica isso.
-- Verificação do manifesto do **build de produção** (obrigatória): baixe o `.aab` da página do build no EAS e confira que `android:allowBackup` é `false` e quais permissões estão declaradas, comparando com a lista da política:
+- Verificação do manifesto do **build de produção** (obrigatória): baixe o `.aab` da página do build no EAS e confira que `android:allowBackup` é `false` e quais permissões estão declaradas, comparando com a lista da política. A lista esperada, obtida de um build de release local em 27/11/2026, tem exatamente sete permissões do Android: `INTERNET`, `ACCESS_NETWORK_STATE`, `CAMERA`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `VIBRATE` e `WAKE_LOCK` (mais a permissão interna `com.simplifica.petvaccines.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`). As demais estão em `android.blockedPermissions` no `app.json`:
 
   ```bash
   bundletool dump manifest --bundle=app.aab | grep -E "allowBackup|uses-permission"
@@ -199,5 +200,5 @@ Para os releases seguintes use apenas `npm run release` (a versão sobe sozinha 
 - Acompanhar issues e avaliações da loja; transformar relatos de bug em issues.
 - Registrar no `CHANGELOG.md` e nas issues o que ficou para a próxima versão.
 - Preparar o release do iOS: os mesmos critérios em aparelho real da Apple (etapa 9 da spec) e a repetição dos testes marcados como iOS nas issues #12 e #14.
-- Opcional: avaliar a remoção de permissões declaradas e não usadas (por exemplo, o acesso legado ao armazenamento e a `INTERNET`) com `android.blockedPermissions` no `app.json`. Só tente com um aparelho à mão: a remoção pode quebrar o seletor de fotos em versões antigas do Android, e deve ser seguida de nova passagem pela tabela de critérios.
+- Opcional: avaliar a remoção de `INTERNET` e `ACCESS_NETWORK_STATE` só no build de release. Elas não foram bloqueadas em `android.blockedPermissions` porque o bloqueio vale para todos os builds e o build de desenvolvimento precisa da rede para falar com o Metro; seria preciso um *config plugin* que as remova apenas na variante de release, seguido de nova passagem pela tabela de critérios.
 - Se a política de privacidade mudar, atualizar a data de vigência e republicar a URL.
