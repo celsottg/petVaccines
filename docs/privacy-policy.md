@@ -33,14 +33,19 @@ O app não envia esses dados a ninguém e não tem como lê-los de fora do apare
 - **Notificações.** No Android 13 ou mais novo, pedida depois que você salva a primeira vacina que tenha data de próxima dose, para avisar do vencimento. Em versões anteriores o sistema não pergunta. Os lembretes são **notificações locais**, agendadas pelo próprio aparelho às 09:00: não existe serviço de notificações por servidor (push) e nada sai do aparelho. O texto de um lembrete traz o nome do pet e o da vacina e é exibido conforme as configurações de notificação e de tela de bloqueio do seu aparelho. Se você negar, o app continua funcionando, sem lembretes.
 - **Galeria de fotos.** O app não solicita acesso à sua galeria durante o uso. Quando você toca em **Escolher da galeria**, o seletor de fotos do sistema abre e entrega ao app somente a imagem que você escolheu.
 
-**O que o app instalado declara sem pedir a você.** O Android mostra a lista de permissões declaradas de um app, inclusive as que não geram nenhuma pergunta. Pelas declarações das bibliotecas que o app usa, esta é a lista esperada; ela será conferida contra o build de produção antes do release:
+**O que o app instalado declara sem pedir a você.** O Android mostra a lista de permissões declaradas de um app, inclusive as que não geram nenhuma pergunta. Além da câmera e das notificações, descritas acima, o app declara estas:
 
 - `INTERNET`: declarada pelo framework do app e por bibliotecas de arquivos e de imagem. O código do app não faz nenhuma requisição de rede.
-- `ACCESS_NETWORK_STATE`: declarada pela biblioteca de imagens. O app só exibe imagens que estão no próprio aparelho.
-- Acesso legado ao armazenamento (`READ_EXTERNAL_STORAGE` e `WRITE_EXTERNAL_STORAGE`, valendo só no Android 12 ou anterior): declarado pelas bibliotecas de fotos e de arquivos. O código do app não os solicita.
-- `RECEIVE_BOOT_COMPLETED` e `POST_NOTIFICATIONS`: declaradas pela biblioteca de notificações, para que os lembretes agendados sobrevivam a um reinício do aparelho e para exibir as notificações.
+- `ACCESS_NETWORK_STATE` (consultar se há conexão): declarada pela biblioteca de imagens e por bibliotecas do Google que acompanham a biblioteca de notificações. O app só exibe imagens que estão no próprio aparelho e não consulta a rede.
+- `RECEIVE_BOOT_COMPLETED` (iniciar com o aparelho): declarada pela biblioteca de notificações, para que os lembretes agendados sobrevivam a um reinício do aparelho.
+- `WAKE_LOCK` (manter o aparelho acordado por instantes): declarada por bibliotecas do Google que acompanham a biblioteca de notificações.
 - `VIBRATE`: declarada pelo modelo base do framework, usada pelo sistema nas notificações; o código do app não aciona a vibração.
-- `SYSTEM_ALERT_WINDOW`: também vem do modelo base do framework; o código do app não a usa.
+
+**Sobre notificações por servidor (push).** A biblioteca de notificações traz consigo a biblioteca de mensagens do Google (Firebase Cloud Messaging), usada por outros apps para notificações push. O Vacinas do Pet não a configura nem a utiliza: não há chave nem arquivo de configuração do serviço no app, as notificações remotas estão desativadas e a permissão de recebimento desse serviço foi removida do app.
+
+**Permissões removidas.** As bibliotecas também declaravam permissões que o app não usa, e elas foram retiradas do app: acesso ao armazenamento compartilhado, sobreposição a outros apps, recebimento de mensagens do serviço de push e contadores de notificação de fabricantes.
+
+Esta lista foi conferida em um build de release do app em 27/11/2026 e é conferida de novo no build publicado.
 
 O app não usa localização, microfone, contatos nem qualquer outro recurso do aparelho para coletar informações.
 

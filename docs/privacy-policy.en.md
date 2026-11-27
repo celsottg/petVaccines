@@ -33,14 +33,19 @@ The app does not send this data to anyone and has no way to read it from outside
 - **Notifications.** On Android 13 or later, requested after you save the first vaccination that has a next-dose date, to warn you of the due date. On earlier versions the system does not ask. Reminders are **local notifications**, scheduled by the device itself at 09:00: there is no server-based (push) notification service and nothing leaves the device. A reminder's text contains the pet's name and the vaccine name and is shown according to your device's notification and lock-screen settings. If you refuse, the app keeps working, without reminders.
 - **Photo gallery.** The app does not request access to your gallery while you use it. When you tap **Escolher da galeria** (Choose from gallery), the system photo picker opens and hands the app only the image you chose.
 
-**What the installed app declares without asking you.** Android shows the list of permissions an app declares, including ones that never trigger a question. From the declarations of the libraries the app uses, this is the expected list; it will be checked against the production build before the release:
+**What the installed app declares without asking you.** Android shows the list of permissions an app declares, including ones that never trigger a question. Besides the camera and notifications, described above, the app declares these:
 
 - `INTERNET`: declared by the app's framework and by file and image libraries. The app's code makes no network request.
-- `ACCESS_NETWORK_STATE`: declared by the image library. The app only displays images that are on the device itself.
-- Legacy storage access (`READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE`, applying only on Android 12 and earlier): declared by the photo and file libraries. The app's code does not request them.
-- `RECEIVE_BOOT_COMPLETED` and `POST_NOTIFICATIONS`: declared by the notifications library, so that scheduled reminders survive a device restart and so that notifications can be shown.
+- `ACCESS_NETWORK_STATE` (check whether there is a connection): declared by the image library and by Google libraries that come with the notifications library. The app only displays images that are on the device itself and does not check the network.
+- `RECEIVE_BOOT_COMPLETED` (start with the device): declared by the notifications library, so that scheduled reminders survive a device restart.
+- `WAKE_LOCK` (keep the device awake for a moment): declared by Google libraries that come with the notifications library.
 - `VIBRATE`: declared by the framework's base template, used by the system for notifications; the app's code does not trigger vibration.
-- `SYSTEM_ALERT_WINDOW`: also comes from the framework's base template; the app's code does not use it.
+
+**About server (push) notifications.** The notifications library brings along Google's messaging library (Firebase Cloud Messaging), which other apps use for push notifications. Vacinas do Pet does not configure or use it: the app holds no key or configuration file for the service, remote notifications are disabled, and the permission to receive messages from that service was removed from the app.
+
+**Removed permissions.** The libraries also declared permissions the app does not use, and they were taken out of the app: access to shared storage, drawing over other apps, receiving messages from the push service, and manufacturers' notification-badge counters.
+
+This list was checked on a release build of the app on 2026-11-27 and is checked again on the published build.
 
 The app does not use location, microphone, contacts or any other device feature to collect information.
 
