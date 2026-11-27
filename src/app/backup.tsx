@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { FormError } from '@/components/FormError';
 import { FormField } from '@/components/FormField';
 import { RestoreSection } from '@/components/RestoreSection';
+import { useAnnounce } from '@/components/useAnnounce';
 import { useExportAction } from '@/components/useExportAction';
 import { useGuardedAction } from '@/components/useGuardedAction';
 import { setSetting } from '@/data/settings';
@@ -34,6 +35,8 @@ function BackupContent({ status }: { status: BackupStatus }) {
   const [saved, setSaved] = useState(false);
   const guard = useGuardedAction();
   const now = new Date();
+  useAnnounce(backup.result ? t('backup.done') : null);
+  useAnnounce(saved ? t('backup.saved') : null);
 
   function saveDays() {
     setSaved(false);
@@ -64,6 +67,7 @@ function BackupContent({ status }: { status: BackupStatus }) {
     [t('backup.content'), content],
   ];
   const missing = backup.result?.missingPhotos ?? 0;
+  useAnnounce(missing > 0 ? t('backup.missingPhotos', { count: missing }) : null);
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.flex, { backgroundColor: colors.background }]}>

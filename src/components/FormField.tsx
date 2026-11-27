@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
+import { useAnnounce } from '@/components/useAnnounce';
 import { useTheme } from '@/theme';
 
 interface FormFieldProps
@@ -23,6 +24,7 @@ export function defaultTestId(label: string): string {
 export function FormField({ label, hint, error, ...inputProps }: FormFieldProps) {
   const { colors, spacing, radius, typography } = useTheme();
   const message = error ?? hint;
+  useAnnounce(error);
 
   return (
     <View style={{ gap: spacing.xs }}>

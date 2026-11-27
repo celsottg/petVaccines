@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useAnnounce } from '@/components/useAnnounce';
 import { MAX_ATTACHMENTS_PER_VACCINATION } from '@/data/attachments';
 import { t } from '@/i18n';
 import type { PhotoSource } from '@/services/photos';
@@ -33,6 +34,7 @@ const THUMB = 72;
 export function ProofPhotos({ photos, editable, onAdd, onOpen, hint, message }: ProofPhotosProps) {
   const { colors, spacing, radius, typography } = useTheme();
   const [choosing, setChoosing] = useState(false);
+  useAnnounce(message);
   const canAdd = editable && photos.length < MAX_ATTACHMENTS_PER_VACCINATION;
 
   // An archived wallet without photos has nothing to show here.

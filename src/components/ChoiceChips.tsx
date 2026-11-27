@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useAnnounce } from '@/components/useAnnounce';
 import { useTheme } from '@/theme';
 
 interface ChoiceChipsProps<T extends string> {
@@ -13,6 +14,7 @@ interface ChoiceChipsProps<T extends string> {
 /** Single choice, shown as chips. The selection is announced to screen readers, not only colored. */
 export function ChoiceChips<T extends string>({ label, options, value, onChange, error }: ChoiceChipsProps<T>) {
   const { colors, spacing, radius, typography } = useTheme();
+  useAnnounce(error);
 
   return (
     <View style={{ gap: spacing.xs }}>
