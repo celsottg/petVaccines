@@ -63,7 +63,7 @@ O app usa bibliotecas nativas que não existem no Expo Go, por isso roda em um [
 
 ### Teste ponta a ponta (Maestro)
 
-O fluxo `.maestro/register-vaccination.yaml` cadastra um pet e uma vacina com foto. **Ainda não foi executado**: leia `.maestro/README.md` para instalar o Maestro, preparar o emulador e rodar com `maestro test .maestro/register-vaccination.yaml`.
+O fluxo `.maestro/register-vaccination.yaml` cadastra um pet e uma vacina com foto. Ele foi validado em um emulador Android 17 (veja as condições em `.maestro/README.md`). Leia `.maestro/README.md` para instalar o Maestro, preparar o emulador e rodar com `maestro test .maestro/register-vaccination.yaml`.
 
 ### Versão e changelog
 

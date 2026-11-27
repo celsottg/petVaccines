@@ -1,7 +1,9 @@
 # ============================================================================
 # SYSTEM PHOTO PICKER STEP (called by ../register-vaccination.yaml).
 #
-# WARNING: NOT RUN. This is the part most likely to need adjusting. The picker
+# VALIDATED on an Android 17 (API 37) emulator with the Photo Picker in English
+# (Maestro 2.13.0, 2026-11-27); NOT run elsewhere, and this is the part most
+# likely to need adjusting on another image. The picker
 # is an Android system screen, not part of the app: its texts, layout and
 # behavior differ between Android versions, Google Play services and emulator
 # images (Photo Picker on Android 13+, "Documents" UI on older images).
@@ -21,14 +23,19 @@ appId: com.simplifica.petvaccines
 # dialog is expected.
 - tapOn: "Escolher da galeria"
 
-# --- System picker (unverified) ---------------------------------------------
+# --- System picker (validated on Android 17 only) ----------------------------
 # Photo Picker thumbnails expose a content description such as
 # "Photo taken on ..." or "Foto tirada em ..."; the first one is chosen. If your
 # image labels them differently, replace the regex (inspect with
 # `maestro studio`). On the older Documents UI you may also need to open
 # "Images" / "Imagens" first, and then tap the image.
+# The regex must NOT match the picker's "Photos" / "Fotos" tab, which also starts
+# with "Photo": only the thumbnail descriptions are accepted.
+- extendedWaitUntil:
+    visible: "(Photo taken|Foto tirada).*"
+    timeout: 15000
 - tapOn:
-    text: "(Photo taken|Foto tirada|Photo|Foto).*"
+    text: "(Photo taken|Foto tirada).*"
     index: 0
 # Some pickers need an explicit confirmation after selecting.
 - tapOn:

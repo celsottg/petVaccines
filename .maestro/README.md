@@ -1,6 +1,6 @@
 # Fluxo ponta a ponta (Maestro)
 
-> **Atenção: os fluxos desta pasta ainda NÃO foram executados.** Foram escritos lendo as telas e o `src/i18n/pt-BR.json`, sem acesso a um emulador. Rode-os, corrija o que falhar e só então confie neles.
+> **Validado em 27/11/2026** em um emulador Android 17 (API 37, imagem com Google Play, sistema em inglês), com um build de release local e o Maestro 2.13.0. O fluxo passou com e sem o passo da foto. **Não foi executado** em outras versões do Android, em aparelho físico nem com o sistema em português; o seletor de fotos do sistema é a parte que mais pode mudar nesses casos.
 
 Esta pasta guarda o teste ponta a ponta do app, escrito para o [Maestro](https://docs.maestro.dev/). Ele cobre o caminho principal da spec (seção 12): cadastrar o pet "Thor" (cão), registrar a vacina "Antirrábica" escolhida entre as sugestões do catálogo, anexar uma foto da galeria e conferir, na carteira, o cartão com o selo "Em dia" e sem o selo "Sem comprovante".
 
@@ -74,4 +74,14 @@ maestro test .maestro/register-vaccination.yaml
 
 Para depurar seletores, `maestro studio` abre uma tela que mostra o que o Maestro enxerga. Os textos e rótulos usados no fluxo vêm de `src/i18n/pt-BR.json`; se mudar um texto da interface, atualize o fluxo.
 
-Quando o fluxo passar, retire o aviso de "NÃO foi executado" do topo dos dois arquivos e deste README, anotando a versão do Android e do Maestro com que foi validado.
+Ao validar o fluxo em outra versão do Android ou em um aparelho, acrescente a versão do Android e do Maestro ao aviso do topo deste README e dos dois arquivos.
+
+## Rodar sem tela (emulador sem janela)
+
+Em uma máquina sem ambiente gráfico disponível, o emulador pode rodar sem janela:
+
+```bash
+emulator -avd <nome-do-avd> -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+```
+
+Para ver a tela em um dado momento: `adb exec-out screencap -p > tela.png`.
