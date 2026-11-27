@@ -78,6 +78,31 @@ describe('app.json Android backup (Task 12)', () => {
   it('turns Android Auto Backup off', () => {
     expect(json('app.json').expo.android.allowBackup).toBe(false);
   });
+
+  // Libraries declare permissions the app never uses; they would be listed on the store page.
+  // The privacy policy describes exactly what is left, so the two must change together.
+  it('blocks the permissions the app does not use', () => {
+    const blocked: string[] = json('app.json').expo.android.blockedPermissions;
+    expect(blocked).toEqual(
+      expect.arrayContaining([
+        'android.permission.SYSTEM_ALERT_WINDOW',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+        'android.permission.READ_APP_BADGE',
+        'com.google.android.c2dm.permission.RECEIVE',
+        'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE',
+      ]),
+    );
+    // Launcher badge permissions come from a badge library the app never calls.
+    expect(blocked.filter((name) => /badge|launcher/i.test(name)).length).toBeGreaterThanOrEqual(15);
+  });
+
+  it('keeps the permissions the app needs', () => {
+    const blocked: string[] = json('app.json').expo.android.blockedPermissions;
+    for (const needed of ['CAMERA', 'POST_NOTIFICATIONS', 'RECEIVE_BOOT_COMPLETED', 'VIBRATE', 'INTERNET']) {
+      expect(blocked).not.toContain(`android.permission.${needed}`);
+    }
+  });
 });
 
 describe('tsconfig.json', () => {
