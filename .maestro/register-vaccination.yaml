@@ -1,10 +1,13 @@
 # ============================================================================
 # END-TO-END FLOW: register a pet and a vaccination with a proof photo.
 #
-# WARNING: THIS FLOW HAS NOT BEEN RUN. Maestro was not available when it was
-# written, so every selector below was derived by reading the screens and
-# src/i18n/pt-BR.json, never by watching the app. Run it on an Android emulator
-# and fix whatever fails BEFORE trusting it (see .maestro/README.md).
+# VALIDATED: this flow passed, with and without the photo step, on an
+# Android 17 (API 37) emulator, Google Play image,
+# English system language, local release build,
+# Maestro 2.13.0, on 2026-11-27.
+# It has NOT been run on other Android versions, on a physical device or with
+# the system in Portuguese; the system photo picker is the part most likely to
+# differ there (see .maestro/README.md).
 # ============================================================================
 #
 # What it covers (spec section 12, "Ponta a ponta"): add the dog "Thor", open

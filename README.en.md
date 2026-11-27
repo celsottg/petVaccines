@@ -65,7 +65,7 @@ The app uses native libraries that are not in Expo Go, so it runs in a [developm
 
 ### End-to-end test (Maestro)
 
-The `.maestro/register-vaccination.yaml` flow registers a pet and a vaccination with a photo. **It has not been run yet**: read `.maestro/README.md` (in Portuguese) to install Maestro, prepare the emulator and run `maestro test .maestro/register-vaccination.yaml`.
+The `.maestro/register-vaccination.yaml` flow registers a pet and a vaccination with a photo. It was validated on an Android 17 emulator (see the conditions in `.maestro/README.md`). Read `.maestro/README.md` (in Portuguese) to install Maestro, prepare the emulator and run `maestro test .maestro/register-vaccination.yaml`.
 
 ### Version and changelog
 

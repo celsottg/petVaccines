@@ -165,7 +165,7 @@ A issue também lista a repetição dos envios no iOS; isso pertence ao release 
 ### Ordem dos passos
 
 1. Todos os itens de **Bloqueios** marcados.
-2. Rodar o fluxo ponta a ponta ([`.maestro/README.md`](../.maestro/README.md)) e corrigir o que falhar. Ele ainda não foi executado.
+2. Rodar o fluxo ponta a ponta ([`.maestro/README.md`](../.maestro/README.md)) e corrigir o que falhar. Ele foi validado em 27/11/2026 em um emulador Android 17 com um build de release local; rode-o de novo no build que será publicado.
 3. No commit que será lançado, com a árvore de trabalho limpa (o build do EAS é gerado a partir dele): `npm ci`, `npm run lint`, `npm run typecheck`, `npm test -- --ci`.
 4. Gerar o build de produção (`.aab`) nesse mesmo commit:
 
